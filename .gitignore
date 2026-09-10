@@ -49,3 +49,4 @@ papers/**/*.synctex.gz
 
 # --- Sistema ---
 .DS_Store
+audit_*.txt
