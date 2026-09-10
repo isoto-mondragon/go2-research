@@ -1,0 +1,17 @@
+{
+  "run_id": "a5_write_path_validated",
+  "usecase": "uc01_locomotion",
+  "tipo": "validacion de infraestructura",
+  "fecha": "2026-09-10",
+  "entorno": "unitree_mujoco simulate_python, domain 1, iface lo",
+  "resultado": {
+    "articulacion": "FR_hip",
+    "kp": 100.0,
+    "offset_rad": 0.2,
+    "seguimiento_pct": 103.6,
+    "error_rad": -0.0073,
+    "tau_est_Nm": 8.676
+  },
+  "incidencia": "USE_JOYSTICK=1 en simulate_python/config.py impedia que arrancase el hilo de fisica; el DDS seguia publicando lowstate con valores congelados",
+  "conclusion": "CRC, head, level_flag y mode de motor validados. Camino de escritura rt/lowcmd correcto."
+}
