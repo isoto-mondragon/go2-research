@@ -1,10 +1,24 @@
 # CONTRATO SIM2REAL - Unitree Go2
 #
-# Fichero unico consumido por train/ Y por deploy/. Si cambias algo aqui,
-# cambia en los dos lados a la vez. Esa es toda la gracia.
+# v2 (2026-09-10). Fichero unico consumido por train/ Y por deploy/.
+# Si un valor cambia aqui, cambia en los dos lados a la vez. Esa es toda la gracia.
 #
-# VERIFICAR contra tu notebook Unitree_RL_MJLAB_clean.ipynb antes de fiarse.
+# PROCEDENCIA DE LOS VALORES
+#   - poses y ganancias del FSM: usecases/uc01_locomotion/configs/deploy_config_legacy.yaml
+#     (heredado de go2-robotics-workspace, rl_workspace/models/go2_velocity_v1/)
+#   - lo marcado PENDIENTE sale de train/legacy_mjlab_go2/deploy_params.yaml
+#
+# CAMBIO RESPECTO A v1: los default_angles genericos (hip +-0.1, thigh trasero 1.0)
+# eran INCORRECTOS. Los reales son [0.0, 0.8, -1.5] identicos en las cuatro patas.
 
+meta:
+  version: 2
+  robot: "Unitree Go2 EDU"
+  policy_source: "unitree_rl_mjlab + mujoco_playground, Colab T4"
+
+# ---------------------------------------------------------------------------
+# Articulaciones
+# ---------------------------------------------------------------------------
 # Orden de motores de unitree_go. NO reordenar: es el orden del firmware.
 joint_order:
   [FR_hip, FR_thigh, FR_calf,
@@ -12,32 +26,114 @@ joint_order:
    RR_hip, RR_thigh, RR_calf,
    RL_hip, RL_thigh, RL_calf]
 
-# Pose nominal de referencia (rad). La accion de la politica es un delta
-# sobre estos angulos, escalado por action_scale.
-default_angles: [ 0.1, 0.8, -1.5,
-                 -0.1, 0.8, -1.5,
-                  0.1, 1.0, -1.5,
-                 -0.1, 1.0, -1.5]
+# ---------------------------------------------------------------------------
+# Poses de referencia (rad)
+# ---------------------------------------------------------------------------
+poses:
+  # Pose de pie. Es la referencia sobre la que la politica aplica su delta.
+  stand:  [0.0, 0.8,  -1.5,
+           0.0, 0.8,  -1.5,
+           0.0, 0.8,  -1.5,
+           0.0, 0.8,  -1.5]
+  # Pose de agachado, punto de partida de la secuencia de levantarse.
+  crouch: [0.0, 1.36, -2.65,
+           0.0, 1.36, -2.65,
+           0.0, 1.36, -2.65,
+           0.0, 1.36, -2.65]
 
-# Ganancias PD. Deben ser IDENTICAS a las del entorno de entrenamiento.
-kp: 25.0
-kd: 0.5
+# Alias que consume la politica. Debe apuntar a poses.stand.
+default_angles: [0.0, 0.8, -1.5,
+                 0.0, 0.8, -1.5,
+                 0.0, 0.8, -1.5,
+                 0.0, 0.8, -1.5]
 
-action_scale: 0.25
-ctrl_hz: 50           # frecuencia de la politica (el LowCmd va a 500 Hz)
+# ---------------------------------------------------------------------------
+# Ganancias PD por estado
+# ---------------------------------------------------------------------------
+# Son VECTORES por articulacion, no escalares. Patron por pata: [hip, thigh, calf].
+gains:
+  # Amortiguacion pura. Estado seguro: kp=0, solo kd.
+  passive:
+    kp: [0, 0, 0,  0, 0, 0,  0, 0, 0,  0, 0, 0]
+    kd: [3, 3, 3,  3, 3, 3,  3, 3, 3,  3, 3, 3]
+
+  # Levantarse y mantenerse de pie sin politica.
+  fix_stand:
+    kp: [60, 80, 80,  60, 80, 80,  60, 80, 80,  60, 80, 80]
+    kd: [5,  4,  4,   5,  4,  4,   5,  4,  4,   5,  4,  4]
+
+  # Ganancias que usa la politica RL de velocidad.
+  # PENDIENTE: extraer de train/legacy_mjlab_go2/deploy_params.yaml.
+  # NO asumir que coinciden con fix_stand.
+  velocity:
+    kp: null
+    kd: null
+
+# Modo de motor para todas las articulaciones (0x01 = servo PMSM habilitado).
+motor_mode: 1
+
+# ---------------------------------------------------------------------------
+# Maquina de estados heredada
+# ---------------------------------------------------------------------------
+fsm:
+  states:
+    passive:   {id: 1}
+    fix_stand: {id: 2}
+    velocity:  {id: 3, type: RLBase}
+  transitions:
+    passive_to_fix_stand: "LT + up"
+    fix_stand_to_velocity: "RT + A"
+    any_to_passive: "LT + B"        # salida de emergencia desde cualquier estado
+  # Rampa de levantarse: t=0 mantiene, t=1 crouch, t=2 stand
+  stand_ramp_s: [0, 1, 2]
+
+# ---------------------------------------------------------------------------
+# Politica
+# ---------------------------------------------------------------------------
+policy:
+  format: onnx
+  path: experiments/uc01/legacy_wsl2/checkpoints/policy.onnx
+  # PENDIENTE: confirmar contra deploy_params.yaml
+  action_scale: null
+  ctrl_hz: null                     # frecuencia de la politica; LowCmd va a 500 Hz
 
 # Orden y escalado de las observaciones. Un error aqui es invisible en
 # simulacion propia y catastrofico en el robot.
+# PENDIENTE: rellenar desde deploy_params.yaml. NO inventar el orden.
 obs:
-  order: [ang_vel, gravity_proj, commands, joint_pos_rel, joint_vel, last_action]
+  order: null
   scales:
-    ang_vel: 0.25
-    joint_pos: 1.0
-    joint_vel: 0.05
-  clip: 100.0
+    ang_vel: null
+    joint_pos: null
+    joint_vel: null
+  clip: null
+  history_len: null                 # algunas configs de mjlab apilan observaciones
 
-# Limites de seguridad aplicados en deploy/, no en train/.
+# Comandos de velocidad admitidos por la politica.
+commands:
+  vx_range: null                    # PENDIENTE
+  vy_range: null
+  wz_range: null
+
+# ---------------------------------------------------------------------------
+# Seguridad: se aplica en deploy/, nunca en train/
+# ---------------------------------------------------------------------------
 safety:
-  tau_max: 23.0
-  q_delta_max: 0.6      # rad de desviacion maxima respecto a default_angles
-  watchdog_ms: 100      # si lowstate deja de llegar, damping
+  tau_max: 23.0                     # Nm por motor
+  q_delta_max: 0.6                  # rad de desviacion maxima respecto a default_angles
+  watchdog_ms: 100                  # sin lowstate durante este tiempo -> passive
+  ramp_in_s: 2.0                    # rampa al entrar en la politica
+  max_tilt_rad: 0.8                 # inclinacion que dispara passive automatico
+
+# ---------------------------------------------------------------------------
+# Entornos DDS
+# ---------------------------------------------------------------------------
+dds:
+  sim:
+    domain_id: 1
+    interface: "lo"
+  real:
+    domain_id: 0
+    interface: "enp3s0"
+    robot_ip: "192.168.123.161"
+    host_ip: "192.168.123.222"

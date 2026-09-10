@@ -1,4 +1,4 @@
 [core]
     remote = danz
 ['remote "danz"']
-    url = /media/ibon/backup/go2-dvc
+    url = /home/ibon/containers/go2-humble/dvc-storage/go2
