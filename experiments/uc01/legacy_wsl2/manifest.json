@@ -1,0 +1,12 @@
+{
+  "run_id": "legacy_wsl2",
+  "usecase": "uc01_locomotion",
+  "tipo": "checkpoint heredado",
+  "procedencia": "go2-robotics-workspace-archive, ruta rl_workspace/models/go2_velocity_v1/",
+  "entrenamiento": "Google Colab, GPU T4 gratuita, aprox. 2 h, unitree_rl_mjlab + mujoco_playground",
+  "formato": "ONNX",
+  "contrato": "usecases/uc01_locomotion/configs/deploy_config_legacy.yaml",
+  "git": {"sha": "desconocido", "dirty": null},
+  "limitaciones": "Anterior a la infraestructura de trazabilidad. Semilla, hiperparametros exactos y numero de pasos no registrados. Utilizable como linea base, NO citable como experimento controlado.",
+  "validado_en": "pendiente: unitree_mujoco (A7)"
+}

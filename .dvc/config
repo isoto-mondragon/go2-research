@@ -1,0 +1,4 @@
+[core]
+    remote = danz
+['remote "danz"']
+    url = /media/ibon/backup/go2-dvc
