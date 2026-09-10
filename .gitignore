@@ -1,0 +1,51 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# --- Entornos y credenciales ---
+.env
+*.pem
+*.key
+
+# --- ROS2 / colcon ---
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# --- Pesos y datos: van por DVC, NUNCA por git ---
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.npz
+*.bag
+*.db3
+*.mcap
+
+# --- Salidas de experimentos ---
+# Se versiona la METADATA (manifest.json, config.snapshot.yaml, metrics.csv)
+# y se ignora todo lo pesado. Los .dvc SI se versionan.
+experiments/**/checkpoints/
+experiments/**/rosbag/
+experiments/**/video/
+!experiments/**/*.dvc
+
+# --- Figuras: se regeneran, no se versionan ---
+results/figures/*
+!results/figures/.gitkeep
+
+# --- LaTeX ---
+papers/**/*.aux
+papers/**/*.log
+papers/**/*.out
+papers/**/*.bbl
+papers/**/*.blg
+papers/**/*.synctex.gz
+
+# --- Sistema ---
+.DS_Store

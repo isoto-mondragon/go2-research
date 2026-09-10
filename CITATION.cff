@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+title: "go2-research: infraestructura reproducible para investigacion con Unitree Go2"
+message: "Si usas este software, citalo asi."
+authors:
+  - family-names: "Soto Alsua"
+    given-names: "Ibon"
+    affiliation: "Mondragon Unibertsitatea, Escuela Politecnica Superior (DANZ)"
+license: MIT

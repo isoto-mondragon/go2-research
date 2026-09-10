@@ -1,0 +1,1 @@
+- unitree_mujoco: USE_JOYSTICK debe ser 0 en simulate_python/config.py o el hilo de fisica no arranca (el DDS sigue publicando, engañoso).

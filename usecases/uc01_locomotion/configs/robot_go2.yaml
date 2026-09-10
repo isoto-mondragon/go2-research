@@ -1,0 +1,43 @@
+# CONTRATO SIM2REAL - Unitree Go2
+#
+# Fichero unico consumido por train/ Y por deploy/. Si cambias algo aqui,
+# cambia en los dos lados a la vez. Esa es toda la gracia.
+#
+# VERIFICAR contra tu notebook Unitree_RL_MJLAB_clean.ipynb antes de fiarse.
+
+# Orden de motores de unitree_go. NO reordenar: es el orden del firmware.
+joint_order:
+  [FR_hip, FR_thigh, FR_calf,
+   FL_hip, FL_thigh, FL_calf,
+   RR_hip, RR_thigh, RR_calf,
+   RL_hip, RL_thigh, RL_calf]
+
+# Pose nominal de referencia (rad). La accion de la politica es un delta
+# sobre estos angulos, escalado por action_scale.
+default_angles: [ 0.1, 0.8, -1.5,
+                 -0.1, 0.8, -1.5,
+                  0.1, 1.0, -1.5,
+                 -0.1, 1.0, -1.5]
+
+# Ganancias PD. Deben ser IDENTICAS a las del entorno de entrenamiento.
+kp: 25.0
+kd: 0.5
+
+action_scale: 0.25
+ctrl_hz: 50           # frecuencia de la politica (el LowCmd va a 500 Hz)
+
+# Orden y escalado de las observaciones. Un error aqui es invisible en
+# simulacion propia y catastrofico en el robot.
+obs:
+  order: [ang_vel, gravity_proj, commands, joint_pos_rel, joint_vel, last_action]
+  scales:
+    ang_vel: 0.25
+    joint_pos: 1.0
+    joint_vel: 0.05
+  clip: 100.0
+
+# Limites de seguridad aplicados en deploy/, no en train/.
+safety:
+  tau_max: 23.0
+  q_delta_max: 0.6      # rad de desviacion maxima respecto a default_angles
+  watchdog_ms: 100      # si lowstate deja de llegar, damping
