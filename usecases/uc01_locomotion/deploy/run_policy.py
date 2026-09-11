@@ -1,51 +1,74 @@
 #!/usr/bin/env python3
 """Despliegue de la politica de locomocion Go2 (ONNX) sobre DDS.
 
-FSM de tres estados, igual que la config heredada del workspace WSL2:
+Cadena completa:
 
-    PASSIVE  -> amortiguacion pura (kp=0, kd=3). Estado seguro de entrada y salida.
-    FIXSTAND -> rampa a crouch y luego a stand, con las ganancias del FSM.
-    VELOCITY -> rampa al offset de la politica y bucle de inferencia ONNX.
+    tools/teleop.py  --rt/wirelesscontroller-->  run_policy.py
+                                                       |
+                                                ONNX + seguridad
+                                                       |
+                                                 rt/lowcmd
+                                                       |
+                                     unitree_mujoco  o  Go2 fisico
 
-SOBRE LEVANTARSE
-----------------
-Levantarse depende del IMPULSO: las patas tienen que meterse bajo el cuerpo y
-empujar antes de que la gravedad las abra. Una rampa lenta da tiempo a que el
-robot se abra de patas y se quede atascado: una vez abiertas 0.5 rad, cerrar la
-cadera exige 60*0.5 = 30 Nm y el tope de la cadera son 23.7. Por eso Unitree
-usa 1 segundo por tramo, y por eso la duracion de la rampa es un parametro que
-se mide, no que se supone.
+El mismo codigo sirve para simulacion y para el robot. Lo unico que cambia es
+--mode, que selecciona domain id e interfaz desde el contrato.
 
-Antes de entregar el control a la politica se comprueba que el robot esta
-realmente de pie. Arrancar la politica desde una pose desparramada la mete en
-una observacion fuera de distribucion y el resultado no informa de nada.
+RENDIMIENTO EN TIEMPO REAL
+--------------------------
+El bucle de politica debe cumplir su plazo (20 ms a 50 Hz). Tres cosas compiten
+por la CPU en este portatil:
 
-DEPURACION
-----------
-    --stand-only        solo el FSM, sin cargar la politica
-    --stand-mode direct rampa directa al offset de la politica, sin FIXSTAND
-    --ramp-s 1.0        duracion de cada tramo de rampa (anula el contrato)
-    --kp-scale 1.5      multiplica las ganancias de FIXSTAND
-    --no-torque-trip    no aborta por saturacion de par (SOLO simulacion)
-    --diag              tabla de par por articulacion cada segundo
+  1. El hilo publicador de LowCmd. El CRC de unitree_sdk2py esta en Python puro
+     y recorre el mensaje byte a byte, asi que 500 Hz cuesta una fraccion
+     grande de un nucleo. En simulacion 200 Hz sobran: usa --publish-hz 200.
+     Para el robot real, dejar 500.
+  2. onnxruntime abre un hilo por nucleo por defecto. Para una MLP de 47
+     entradas eso es contraproducente: sincronizar los hilos cuesta mas que el
+     calculo. Aqui se fuerza a 1 hilo.
+  3. El visor de MuJoCo redibuja en el mismo proceso que la fisica. Subir
+     VIEWER_DT en simulate_python/config.py libera CPU.
 
-Barrido tipico para encontrar la combinacion que levanta al robot:
-    for R in 0.5 0.8 1.0 1.5; do
-      python3 .../run_policy.py --mode sim --stand-only --ramp-s $R --duration 3
-    done
+Al terminar se informa del porcentaje de pasos fuera de plazo y de la
+frecuencia real de publicacion, para saber cual de los tres es el cuello.
+
+MODOS DE LEVANTARSE (--stand-mode)
+----------------------------------
+    direct  (defecto) rampa a default_joint_pos con ganancias de politica.
+            Es lo que hacia python_onnx_ctrl.py en WSL2 y es lo que funciona.
+    fsm     crouch y stand con las ganancias rigidas del deploy C++. En
+            simulacion produce temblor: con kd=5, 4.7 rad/s ya saturan el
+            actuador. En el robot real el PD va dentro del motor y no ocurre.
+    none    el robot ya esta de pie.
+
+Uso tipico:
+    # Terminal A: simulador
+    cd ~/opt/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+    # Terminal B: politica
+    python3 .../run_policy.py --mode sim --teleop --publish-hz 200 --duration 300
+    # Terminal C: teclado
+    python3 tools/teleop.py --mode sim
 """
 
 from __future__ import annotations
 
-import argparse
-import csv
-import math
-import signal
-import sys
-import time
-from pathlib import Path
+import os
 
-import numpy as np
+# Debe ir ANTES de importar numpy y onnxruntime: si no, ya han creado sus pools.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+
+import argparse       # noqa: E402
+import csv            # noqa: E402
+import math           # noqa: E402
+import signal         # noqa: E402
+import sys            # noqa: E402
+import threading      # noqa: E402
+import time           # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import numpy as np    # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -54,6 +77,43 @@ from go2core.control import contract as ct          # noqa: E402
 from go2core.control.lowlevel import LowLevel, SafetyTrip  # noqa: E402
 
 DEFAULT_CONTRACT = REPO_ROOT / "usecases/uc01_locomotion/configs/robot_go2.yaml"
+
+
+# ---------------------------------------------------------------------------
+class TeleopSource:
+    """Comando de velocidad leido de rt/wirelesscontroller.
+
+    Mapeo identico al de tools/teleop.py, go2_controller.py y el mando:
+        ly -> vx    lx -> vy    rx -> wz
+    """
+
+    def __init__(self) -> None:
+        self._cmd = np.zeros(3, dtype=np.float32)
+        self._lock = threading.Lock()
+        self.msgs = 0
+        self.last_t = 0.0
+
+    def start(self) -> None:
+        from unitree_sdk2py.core.channel import ChannelSubscriber
+        from unitree_sdk2py.idl.unitree_go.msg.dds_ import WirelessController_
+        # ChannelFactoryInitialize ya lo hizo LowLevel: se comparte participante,
+        # asi que este suscriptor usa el MISMO domain id. Si el publicador usa
+        # otro dominio, los mensajes no llegan nunca (fallo silencioso).
+        ChannelSubscriber("rt/wirelesscontroller", WirelessController_).Init(self._on, 10)
+
+    def _on(self, m) -> None:
+        with self._lock:
+            self._cmd = np.asarray([m.ly, m.lx, m.rx], dtype=np.float32)
+            self.msgs += 1
+            self.last_t = time.monotonic()
+
+    def get(self) -> np.ndarray:
+        with self._lock:
+            return self._cmd.copy()
+
+    def age_s(self) -> float:
+        with self._lock:
+            return float("inf") if self.msgs == 0 else time.monotonic() - self.last_t
 
 
 # ---------------------------------------------------------------------------
@@ -104,18 +164,13 @@ def build_obs(ll: LowLevel, c: dict, cmd: np.ndarray, phase: float,
 
 
 def hip_spread(ll: LowLevel) -> float:
-    """Apertura media de las caderas. Sirve para detectar el spagat."""
     return float(np.mean(np.abs(ll.joint_q()[[0, 3, 6, 9]])))
 
 
 def ramp(ll: LowLevel, q_to: np.ndarray, kp: np.ndarray, kd: np.ndarray,
          seconds: float, label: str = "", diag: bool = False,
          dt: float = 0.004) -> dict:
-    """Interpolacion suave (smoothstep) desde la pose ACTUAL hasta q_to.
-
-    No comprueba inclinacion: durante una rampa el tronco puede estar
-    legitimamente inclinado. Devuelve un resumen de lo ocurrido.
-    """
+    """Interpolacion smoothstep desde la pose ACTUAL hasta q_to (orden MOTOR)."""
     q_from = ll.joint_q()
     t0 = time.monotonic()
     next_diag = t0 + 1.0
@@ -126,16 +181,14 @@ def ramp(ll: LowLevel, q_to: np.ndarray, kp: np.ndarray, kd: np.ndarray,
         ll.set_command((1 - a) * q_from + a * q_to, kp, kd)
         ll.check_safety(check_tilt=False, transient=True)
         if diag and now >= next_diag:
-            print(f"  [diag {label} t={now - t0:.1f}s altura~{ll.height_proxy():.3f}m "
-                  f"caderas~{hip_spread(ll):.3f}rad]")
+            print(f"  [diag {label} t={now - t0:.1f}s h~{ll.height_proxy():.3f}m]")
             print(ll.tau_table())
             next_diag = now + 1.0
         if a >= 1.0:
             break
         time.sleep(dt)
 
-    # Dejar asentar antes de medir: la rampa termina, la fisica no.
-    time.sleep(0.3)
+    time.sleep(0.3)   # la rampa termina, la fisica no
     res = {
         "altura": ll.height_proxy(),
         "caderas": hip_spread(ll),
@@ -148,8 +201,15 @@ def ramp(ll: LowLevel, q_to: np.ndarray, kp: np.ndarray, kd: np.ndarray,
     return res
 
 
-def command_at(t: float, args, c: dict) -> np.ndarray:
-    """Comando de velocidad (vx, vy, wz), recortado a los rangos del contrato."""
+def clamp_cmd(v, c: dict) -> np.ndarray:
+    lo = [c["commands"]["vx_range"][0], c["commands"]["vy_range"][0], c["commands"]["wz_range"][0]]
+    hi = [c["commands"]["vx_range"][1], c["commands"]["vy_range"][1], c["commands"]["wz_range"][1]]
+    return np.clip(np.asarray(v, dtype=np.float32), lo, hi).astype(np.float32)
+
+
+def command_at(t: float, args, c: dict, teleop: TeleopSource | None) -> np.ndarray:
+    if teleop is not None:
+        return clamp_cmd(teleop.get(), c)
     if args.auto:
         if t < 5.0:
             v = (0.0, 0.0, 0.0)
@@ -163,19 +223,15 @@ def command_at(t: float, args, c: dict) -> np.ndarray:
             v = (0.0, 0.0, 0.0)
     else:
         v = (args.vx, args.vy, args.wz)
-
-    lo = [c["commands"]["vx_range"][0], c["commands"]["vy_range"][0], c["commands"]["wz_range"][0]]
-    hi = [c["commands"]["vx_range"][1], c["commands"]["vy_range"][1], c["commands"]["wz_range"][1]]
-    return np.clip(np.asarray(v, dtype=np.float32), lo, hi).astype(np.float32)
+    return clamp_cmd(v, c)
 
 
 def stand_verdict(res: dict, min_height: float, max_spread: float) -> tuple[bool, str]:
-    """Decide si el robot esta realmente de pie y explica por que no, si no."""
     if res["altura"] < min_height:
-        return False, (f"altura {res['altura']:.3f} m < {min_height} m: no se ha levantado")
+        return False, f"altura {res['altura']:.3f} m < {min_height} m: no se ha levantado"
     if res["caderas"] > max_spread:
-        return False, (f"caderas abiertas {res['caderas']:.3f} rad > {max_spread}: "
-                       "spagat. Prueba una rampa mas corta (--ramp-s 0.8)")
+        return False, (f"caderas abiertas {res['caderas']:.3f} rad > {max_spread}: spagat. "
+                       "Por encima de 0.395 rad la cadera ya no puede cerrarse con kp=60.")
     if res["inclinacion_deg"] > 25:
         return False, f"inclinacion {res['inclinacion_deg']:.0f} deg: tronco mal orientado"
     return True, "de pie y estable"
@@ -191,28 +247,25 @@ def main() -> int:
     p.add_argument("--domain", type=int, default=None)
     p.add_argument("--policy", default=None)
     p.add_argument("--duration", type=float, default=60.0)
+    p.add_argument("--teleop", action="store_true",
+                   help="comando desde rt/wirelesscontroller (tools/teleop.py o mando)")
     p.add_argument("--vx", type=float, default=0.0)
     p.add_argument("--vy", type=float, default=0.0)
     p.add_argument("--wz", type=float, default=0.0)
     p.add_argument("--auto", action="store_true")
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--stand-only", action="store_true",
-                   help="ejecuta solo el levantarse. No carga la politica.")
-    p.add_argument("--stand-mode", choices=["fsm", "direct", "none"], default="direct",
-                   help="fsm: crouch y stand. direct: rampa al offset de la politica. "
-                        "none: no hacer nada (el robot ya esta de pie).")
-    p.add_argument("--ramp-s", type=float, default=None,
-                   help="segundos por tramo de rampa. Anula stand_ramp_s del contrato.")
-    p.add_argument("--kp-scale", type=float, default=1.0,
-                   help="multiplica las ganancias de FIXSTAND")
-    p.add_argument("--min-height", type=float, default=0.24,
-                   help="altura minima para dar por bueno el levantarse")
-    p.add_argument("--max-spread", type=float, default=0.25,
-                   help="apertura maxima de cadera admisible (rad)")
-    p.add_argument("--force", action="store_true",
-                   help="continuar a la politica aunque el levantarse no sea valido")
-    p.add_argument("--no-torque-trip", action="store_true",
-                   help="no abortar por saturacion de par. SOLO en simulacion.")
+    p.add_argument("--stand-only", action="store_true")
+    p.add_argument("--stand-mode", choices=["direct", "fsm", "none"], default="direct")
+    p.add_argument("--ramp-s", type=float, default=1.5)
+    p.add_argument("--kp-scale", type=float, default=1.0)
+    p.add_argument("--min-height", type=float, default=0.20)
+    p.add_argument("--max-spread", type=float, default=0.25)
+    p.add_argument("--force", action="store_true")
+    p.add_argument("--publish-hz", type=float, default=None,
+                   help="frecuencia del hilo de LowCmd. 200 en sim, 500 en robot real.")
+    p.add_argument("--onnx-threads", type=int, default=1,
+                   help="hilos de onnxruntime. 1 es lo optimo para una MLP pequena.")
+    p.add_argument("--no-torque-trip", action="store_true")
     p.add_argument("--diag", action="store_true")
     p.add_argument("--log", default=None)
     args = p.parse_args()
@@ -231,7 +284,12 @@ def main() -> int:
         if not policy_path.exists():
             print(f"\nNo existe la politica: {policy_path}\nSi viene de DVC:  dvc pull")
             return 2
-        sess = ort.InferenceSession(str(policy_path), providers=["CPUExecutionProvider"])
+        so = ort.SessionOptions()
+        so.intra_op_num_threads = args.onnx_threads
+        so.inter_op_num_threads = 1
+        so.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        sess = ort.InferenceSession(str(policy_path), sess_options=so,
+                                    providers=["CPUExecutionProvider"])
         in_name = sess.get_inputs()[0].name
         out_name = sess.get_outputs()[0].name
         in_shape = sess.get_inputs()[0].shape
@@ -239,7 +297,20 @@ def main() -> int:
             print(f"\nEl ONNX espera {in_shape[-1]} dims y el contrato declara "
                   f"{c['obs']['total_dim']}. No se continua.")
             return 2
-        print(f"\nONNX OK: {in_name}{in_shape} -> {out_name}")
+        print(f"\nONNX OK: {in_name}{in_shape} -> {out_name} "
+              f"({args.onnx_threads} hilo/s)")
+
+        # Medida del coste de inferencia, para saber si es el cuello de botella.
+        dummy = np.zeros((1, c["obs"]["total_dim"]), dtype=np.float32)
+        for _ in range(20):
+            sess.run([out_name], {in_name: dummy})
+        t0 = time.perf_counter()
+        for _ in range(200):
+            sess.run([out_name], {in_name: dummy})
+        infer_ms = (time.perf_counter() - t0) / 200 * 1e3
+        budget_ms = float(c["policy"]["step_dt"]) * 1e3
+        print(f"inferencia: {infer_ms:.2f} ms por paso "
+              f"({100 * infer_ms / budget_ms:.1f} % del plazo de {budget_ms:.0f} ms)")
 
     if args.mode == "real":
         print("\n  ROBOT FISICO. Confirma antes de continuar:")
@@ -250,6 +321,8 @@ def main() -> int:
             return 1
 
     ll = LowLevel(c, mode=args.mode, iface=args.iface, domain=args.domain)
+    if args.publish_hz:
+        ll.publish_dt = 1.0 / float(args.publish_hz)
     if args.no_torque_trip:
         ll.torque_trip = False
         print("\n  AVISO: disparo por par DESACTIVADO. Solo para depurar en simulacion.")
@@ -272,7 +345,7 @@ def main() -> int:
             return 2
         ll._state, ll._state_t = box["m"], time.monotonic()
 
-        cmd = command_at(10.0, args, c)
+        cmd = command_at(10.0, args, c, None)
         obs = build_obs(ll, c, cmd, 0.25, np.zeros(12, dtype=np.float32))
         act = sess.run([out_name], {in_name: obs})[0].reshape(-1)[:12]
         scale = np.asarray(c["policy"]["action"]["scale"], dtype=np.float32)
@@ -295,42 +368,45 @@ def main() -> int:
     if args.log:
         fh = open(args.log, "w", newline="")
         writer = csv.writer(fh)
-        writer.writerow(["t", "state", "vx_cmd", "vy_cmd", "wz_cmd",
-                         "tilt_rad", "height", "hip_spread", "tau_max", "q_err_max"])
+        writer.writerow(["t", "vx_cmd", "vy_cmd", "wz_cmd", "tilt_rad",
+                         "height", "hip_spread", "tau_max", "q_err_max"])
 
     exit_code = 0
+    teleop = None
     try:
         ll.start()
         print(f"\n{ll.summary()}")
+        print(f"publicacion de LowCmd a {1.0 / ll.publish_dt:.0f} Hz objetivo")
 
-        ts = c["fsm"]["stand_ramp_s"]
-        seg = args.ramp_s if args.ramp_s is not None else max(ts[1] - ts[0], 0.5)
+        if args.teleop:
+            teleop = TeleopSource()
+            teleop.start()
+            print(f"teleop: escuchando rt/wirelesscontroller en domain {ll.domain}.")
+            print("        Si el publicador usa otro dominio, no llegara nada.")
+
         kp_fs, kd_fs = ct.fsm_gains(c, "fix_stand")
         kp_fs = kp_fs * args.kp_scale
         kp_pol, kd_pol = ct.policy_gains_motor(c)
         offset_motor = ct.policy_defaults_motor(c)
 
-        print(f"levantarse: modo={args.stand_mode} rampa={seg:.2f}s/tramo "
-              f"kp_scale={args.kp_scale}\n")
+        print(f"levantarse: modo={args.stand_mode} rampa={args.ramp_s:.2f}s\n")
 
         res = None
-        if args.stand_mode == "fsm":
+        if args.stand_mode == "direct":
+            print("[DIRECT] rampa al offset de la politica...")
+            res = ramp(ll, offset_motor, kp_pol, kd_pol, args.ramp_s, "offset", args.diag)
+        elif args.stand_mode == "fsm":
             print("[FIXSTAND] crouch...")
-            ramp(ll, ct.fsm_pose(c, "crouch"), kp_fs, kd_fs, seg, "crouch", args.diag)
+            ramp(ll, ct.fsm_pose(c, "crouch"), kp_fs, kd_fs, args.ramp_s, "crouch", args.diag)
             print("[FIXSTAND] stand...")
-            res = ramp(ll, ct.fsm_pose(c, "stand"), kp_fs, kd_fs, seg, "stand", args.diag)
-        elif args.stand_mode == "direct":
-            print("[DIRECT] rampa al offset de la politica con ganancias de politica...")
-            res = ramp(ll, offset_motor, kp_pol, kd_pol, seg, "offset", args.diag)
+            res = ramp(ll, ct.fsm_pose(c, "stand"), kp_fs, kd_fs, args.ramp_s, "stand", args.diag)
 
         if res is not None:
             ok, why = stand_verdict(res, args.min_height, args.max_spread)
             print(f"\n[VEREDICTO] {'OK' if ok else 'FALLO'}: {why}")
             if not ok and not args.force and not args.stand_only:
                 print("[VEREDICTO] no se entrega el control a la politica desde una pose")
-                print("            invalida: la observacion quedaria fuera de distribucion")
-                print("            y el resultado no informaria de nada.")
-                print("            Usa --force si quieres continuar igualmente.")
+                print("            invalida. Usa --force para continuar igualmente.")
                 return 4
 
         if args.stand_only:
@@ -342,16 +418,13 @@ def main() -> int:
                     print(f"  altura ~{ll.height_proxy():.3f} m | "
                           f"caderas ~{hip_spread(ll):.3f} rad | "
                           f"inclinacion {np.degrees(ll.tilt_rad()):.0f} deg")
-                    if args.diag:
-                        print(ll.tau_table())
                     nxt = time.monotonic() + 1.0
                 time.sleep(0.05)
             return 0
 
         if args.stand_mode == "fsm":
-            print(f"\n[VELOCITY] rampa al offset de la politica...")
-            ramp(ll, offset_motor, kp_fs, kd_fs,
-                 float(c["safety"]["ramp_in_s"]), "offset", args.diag)
+            print("\n[VELOCITY] rampa al offset de la politica...")
+            ramp(ll, offset_motor, kp_fs, kd_fs, float(c["safety"]["ramp_in_s"]), "offset")
 
         # ---- bucle de politica ----
         scale = np.asarray(c["policy"]["action"]["scale"], dtype=np.float32)
@@ -360,17 +433,25 @@ def main() -> int:
         period = float(c["obs"]["gait_phase"]["period_s"])
 
         last_action = np.zeros(12, dtype=np.float32)
+        last_cmd = np.zeros(3, dtype=np.float32)
         phase = 0.0
         t_start = time.monotonic()
         next_tick = t_start
-        tick = 0
+        pub0 = ll.published
+        tick = late = 0
+        work_s = 0.0
         print(f"[VELOCITY] politica a {c['policy']['ctrl_hz']} Hz. Ctrl-C para parar.\n")
 
         while not stop["flag"] and (time.monotonic() - t_start) < args.duration:
+            w0 = time.perf_counter()
             t = time.monotonic() - t_start
             ll.check_safety()
 
-            cmd = command_at(t, args, c)
+            cmd = command_at(t, args, c, teleop)
+            if teleop is not None and not np.allclose(cmd, last_cmd, atol=1e-3):
+                print(f"  [teleop] cmd={np.round(cmd, 2).tolist()}")
+                last_cmd = cmd
+
             phase = (phase + step_dt / period) % 1.0
             obs = build_obs(ll, c, cmd, phase, last_action)
             act = sess.run([out_name], {in_name: obs})[0].reshape(-1)[:12]
@@ -380,25 +461,51 @@ def main() -> int:
             applied = ll.set_command_clamped(target_motor, kp_pol, kd_pol, offset_motor)
 
             if writer is not None:
-                writer.writerow([f"{t:.3f}", "velocity", *[f"{v:.3f}" for v in cmd],
+                writer.writerow([f"{t:.3f}", *[f"{v:.3f}" for v in cmd],
                                  f"{ll.tilt_rad():.4f}", f"{ll.height_proxy():.4f}",
                                  f"{hip_spread(ll):.4f}",
                                  f"{np.abs(ll.joint_tau()).max():.2f}",
                                  f"{np.abs(applied - ll.joint_q()).max():.4f}"])
-            if tick % c["policy"]["ctrl_hz"] == 0:
+            if tick % (c["policy"]["ctrl_hz"] * 2) == 0:
+                extra = ""
+                if teleop is not None:
+                    extra = f" teleop={teleop.msgs}msg"
                 print(f"  t={t:5.1f}s cmd={np.round(cmd, 2).tolist()} "
                       f"tilt={np.degrees(ll.tilt_rad()):4.0f}deg "
                       f"h~{ll.height_proxy():.3f}m "
-                      f"tau={np.abs(ll.joint_tau()).max():5.1f}Nm")
+                      f"tau={np.abs(ll.joint_tau()).max():5.1f}Nm{extra}")
                 if args.diag:
                     print(ll.tau_table())
 
+            work_s += time.perf_counter() - w0
             tick += 1
             next_tick += step_dt
-            time.sleep(max(0.0, next_tick - time.monotonic()))
+            sleep_s = next_tick - time.monotonic()
+            if sleep_s < 0:
+                late += 1
+                next_tick = time.monotonic()
+            time.sleep(max(0.0, sleep_s))
 
-        print(f"\n[FIN] {'interrumpido' if stop['flag'] else 'duracion completada'} "
-              f"tras {time.monotonic() - t_start:.1f} s")
+        dur = time.monotonic() - t_start
+        pub_hz = (ll.published - pub0) / max(dur, 1e-6)
+        print(f"\n[FIN] {'interrumpido' if stop['flag'] else 'duracion completada'} tras {dur:.1f} s")
+        print(f"      pasos            : {tick} | fuera de plazo {late} "
+              f"({100.0 * late / max(tick, 1):.1f} %)")
+        print(f"      trabajo por paso : {work_s / max(tick, 1) * 1e3:.2f} ms "
+              f"de {step_dt * 1e3:.0f} ms disponibles")
+        print(f"      LowCmd real      : {pub_hz:.0f} Hz "
+              f"(objetivo {1.0 / ll.publish_dt:.0f})")
+        if teleop is not None:
+            print(f"      teleop recibidos : {teleop.msgs} mensajes")
+            if teleop.msgs == 0:
+                print("      NINGUN mensaje de teleop. Casi siempre es un dominio DDS")
+                print("      distinto entre publicador y suscriptor. Comprueba que el")
+                print("      teleop usa el mismo --mode que este proceso.")
+        if late > 0.1 * tick:
+            print("\n      Cuello de botella: si 'trabajo por paso' es pequeno pero hay")
+            print("      muchos fuera de plazo, la CPU se la lleva otro proceso (visor")
+            print("      de MuJoCo o el hilo de LowCmd). Baja --publish-hz o sube")
+            print("      VIEWER_DT en simulate_python/config.py.")
 
     except SafetyTrip as e:
         print(f"\n[SEGURIDAD] {e}")

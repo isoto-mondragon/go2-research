@@ -1,0 +1,41 @@
+{
+  "usecase": "uc01_locomotion",
+  "tipo": "linea base de despliegue en simulacion",
+  "entorno": "unitree_mujoco simulate_python, domain 1, lo, VIEWER_DT 0.05",
+  "politica": "policy.onnx heredada del workspace WSL2 (Colab T4, ~2h)",
+  "configuracion": {
+    "stand_mode": "direct",
+    "ramp_s": 1.5,
+    "publish_hz": 200,
+    "onnx_threads": 1,
+    "ctrl_hz": 50
+  },
+  "rendimiento": {
+    "duracion_s": 180,
+    "pasos": 9000,
+    "fuera_de_plazo_pct": 0.0,
+    "trabajo_por_paso_ms": 4.34,
+    "lowcmd_hz_real": 200,
+    "teleop_mensajes": 4077
+  },
+  "validado": [
+    "ONNX carga; obs[1,47] cuadra con el contrato",
+    "orden de articulaciones aplicado via joint_ids_map",
+    "LowCmd con CRC aceptado",
+    "el robot se levanta y se equilibra con la politica",
+    "teleoperacion por rt/wirelesscontroller funcional"
+  ],
+  "hallazgos": [
+    "unitree_mujoco requiere USE_JOYSTICK=0 o el hilo de fisica no arranca; el DDS sigue publicando y el fallo parece de control",
+    "dos instancias del simulador a la vez producen un estado incoherente indistinguible de un fallo de control",
+    "el FSM crouch/stand del deploy C++ (kd=5) satura el actuador en simulacion: 4.7 rad/s bastan. El robot real no lo sufre porque el PD va dentro del motor",
+    "los limites de par del Go2 son por articulacion: 23.7 Nm cadera y muslo, 45.43 Nm rodilla",
+    "una cadera abierta mas de 0.395 rad ya no puede cerrarse con kp=60: punto de no retorno del spagat",
+    "teleop_wireless.py publicaba en domain 0 (heredado de play_dds.py); unitree_mujoco usa el 1",
+    "el hilo de LowCmd a 500 Hz y onnxruntime multihilo saturaban la CPU: 19.3% de pasos fuera de plazo, resuelto con 200 Hz y 1 hilo"
+  ],
+  "limitaciones": [
+    "watchdog subido a 300 ms para simulacion; volver a 100 ms para el robot real",
+    "sin medida de velocidad real de la base: el seguimiento de comando no se ha cuantificado todavia"
+  ]
+}

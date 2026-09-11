@@ -1,0 +1,196 @@
+# CONTRATO SIM2REAL - Unitree Go2
+#
+# v3.2 (2026-09-10). Cambios respecto a v3.1:
+#   - safety.tau_limits      nuevo. Limite POR ARTICULACION en lugar de un
+#                            escalar. En el Go2 la rodilla aguanta casi el
+#                            doble que la cadera y el muslo, asi que un unico
+#                            umbral es siempre o demasiado laxo para la cadera
+#                            o demasiado estricto para la rodilla.
+#   - safety.tau_sustained_ms nuevo. La saturacion TRANSITORIA no es averia:
+#                            levantarse desde el suelo satura la rodilla unas
+#                            decenas de ms y eso es funcionamiento normal. Lo
+#                            que indica problema es estar pegado al tope de
+#                            forma sostenida, senal de que la articulacion
+#                            pelea contra algo que no cede.
+#   - safety.tau_max / tau_max_ramd  eliminados (los sustituye tau_limits)
+#
+# Historial:
+#   v3.1 - tau_max 23->33, tau_max_ramp 42, rampas [0,2,4], q_delta 1.0
+#   v3   - contrato completo desde deploy_params.yaml
+#
+# PROCEDENCIA
+#   - bloque `policy` y `obs` : train/legacy_mjlab_go2/deploy_params.yaml
+#   - bloque `fsm`            : train/legacy_mjlab_go2/config.yaml
+#   - bloque `safety`         : decision de este proyecto, medida en simulacion
+#
+# ===========================================================================
+# AVISO SOBRE ORDENES DE ARTICULACION - LEER ANTES DE TOCAR NADA
+# ===========================================================================
+#   ORDEN MOTOR    (firmware Unitree) : FR, FL, RR, RL
+#   ORDEN POLITICA (mjlab / la red)   : FL, FR, RL, RR
+#
+# Cada bloque declara su orden en un campo `*_order`. Convertir entre ambos se
+# hace SOLO con go2core.control.contract, nunca a mano.
+#
+# ===========================================================================
+# AVISO SOBRE POSES - HAY DOS Y NO SON LA MISMA
+# ===========================================================================
+#   fsm.poses.stand          = [0, 0.8, -1.5]      -> objetivo del FSM FixStand
+#   policy.default_joint_pos = [+-0.1, 0.9, -1.8]  -> offset de la red
+
+meta:
+  version: 3
+  revision: "3.2"
+  robot: "Unitree Go2 EDU"
+  policy_source: "unitree_rl_mjlab + mujoco_playground, Colab T4"
+  legacy_config: "usecases/uc01_locomotion/train/legacy_mjlab_go2/deploy_params.yaml"
+
+# ---------------------------------------------------------------------------
+# Articulaciones
+# ---------------------------------------------------------------------------
+joint_order:
+  [FR_hip, FR_thigh, FR_calf,
+   FL_hip, FL_thigh, FL_calf,
+   RR_hip, RR_thigh, RR_calf,
+   RL_hip, RL_thigh, RL_calf]
+
+motor_mode: 1              # 0x01 = servo PMSM habilitado
+
+# Limites fisicos del hardware. NO son parametros ajustables: son datos.
+# Verificar contra actuator_forcerange del scene.xml de unitree_mujoco.
+hardware:
+  tau_limit_hip_nm: 23.7
+  tau_limit_thigh_nm: 23.7
+  tau_limit_calf_nm: 45.43   # la rodilla lleva reduccion extra
+
+# ---------------------------------------------------------------------------
+# Politica RL
+# ---------------------------------------------------------------------------
+policy:
+  format: onnx
+  path: experiments/uc01/legacy_wsl2/checkpoints/policy.onnx
+  input_name: obs          # verificado: obs [1, 47] float32
+  output_name: actions     # verificado: actions [1, 12] float32
+
+  joint_ids_map: [3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8]
+
+  ctrl_hz: 50
+  step_dt: 0.02
+  publish_hz: 500
+
+  default_joint_pos_order: policy
+  default_joint_pos: [-0.1, 0.9, -1.8,
+                       0.1, 0.9, -1.8,
+                      -0.1, 0.9, -1.8,
+                       0.1, 0.9, -1.8]
+
+  gains_order: policy
+  gains:
+    kp: [20, 20, 40,  20, 20, 40,  20, 20, 40,  20, 20, 40]
+    kd: [ 1,  1,  2,   1,  1,  2,   1,  1,  2,   1,  1,  2]
+
+  action_order: policy
+  action:
+    scale:  [0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+             0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+    offset: [-0.1, 0.9, -1.8,
+              0.1, 0.9, -1.8,
+             -0.1, 0.9, -1.8,
+              0.1, 0.9, -1.8]
+    clip: null
+
+# ---------------------------------------------------------------------------
+# Observaciones: 47 dimensiones en este orden exacto
+# ---------------------------------------------------------------------------
+obs:
+  total_dim: 47
+  order: policy
+  terms:
+    - {name: base_ang_vel,      dim: 3,  scale: 1.0}
+    - {name: projected_gravity, dim: 3,  scale: 1.0}
+    - {name: velocity_commands, dim: 3,  scale: 1.0}
+    - {name: gait_phase,        dim: 2,  scale: 1.0}
+    - {name: joint_pos_rel,     dim: 12, scale: 1.0}
+    - {name: joint_vel_rel,     dim: 12, scale: 1.0}
+    - {name: last_action,       dim: 12, scale: 1.0}
+  clip: null
+  history_length: 1
+  gait_phase:
+    period_s: 0.6
+    zero_below_cmd_norm: 0.1
+
+commands:
+  vx_range: [-0.5, 1.0]
+  vy_range: [-0.5, 0.5]
+  wz_range: [-1.0, 1.0]
+
+# ---------------------------------------------------------------------------
+# Maquina de estados. Vectores en ORDEN MOTOR.
+# ---------------------------------------------------------------------------
+fsm:
+  gains_order: motor
+  poses_order: motor
+
+  states:
+    passive:   {id: 1}
+    fix_stand: {id: 2}
+    velocity:  {id: 3, type: RLBase}
+
+  transitions:
+    passive_to_fix_stand:  "LT + up"
+    fix_stand_to_velocity: "RT + A"
+    any_to_passive:        "LT + B"
+
+  poses:
+    crouch: [0.0, 1.36, -2.65,
+             0.0, 1.36, -2.65,
+             0.0, 1.36, -2.65,
+             0.0, 1.36, -2.65]
+    stand:  [0.0, 0.8, -1.5,
+             0.0, 0.8, -1.5,
+             0.0, 0.8, -1.5,
+             0.0, 0.8, -1.5]
+
+  gains:
+    passive:
+      kp: [0, 0, 0,  0, 0, 0,  0, 0, 0,  0, 0, 0]
+      kd: [3, 3, 3,  3, 3, 3,  3, 3, 3,  3, 3, 3]
+    fix_stand:
+      kp: [60, 80, 80,  60, 80, 80,  60, 80, 80,  60, 80, 80]
+      kd: [ 5,  4,  4,   5,  4,  4,   5,  4,  4,   5,  4,  4]
+
+  stand_ramp_s: [0, 1, 2]
+
+# ---------------------------------------------------------------------------
+# Seguridad. Se aplica en deploy/, nunca en train/.
+# ---------------------------------------------------------------------------
+safety:
+  # Limite de par POR ARTICULACION, en ORDEN MOTOR. Patron [hip, thigh, calf].
+  tau_limits_order: motor
+  tau_limits: [23.7, 23.7, 45.43,
+               23.7, 23.7, 45.43,
+               23.7, 23.7, 45.43,
+               23.7, 23.7, 45.43]
+
+  # Se considera saturada una articulacion por encima de este porcentaje de su
+  # limite. Se dispara solo si la saturacion dura mas de tau_sustained_ms.
+  tau_saturation_frac: 0.98
+  tau_sustained_ms: 500
+
+  q_delta_max: 1.0         # rad de desviacion maxima respecto al offset
+  watchdog_ms: 300         # sin lowstate durante este tiempo -> passive
+  ramp_in_s: 2.0           # transicion de fsm.poses.stand a default_joint_pos
+  max_tilt_rad: 0.8        # inclinacion del tronco que dispara passive
+
+# ---------------------------------------------------------------------------
+# Entornos DDS
+# ---------------------------------------------------------------------------
+dds:
+  sim:
+    domain_id: 1
+    interface: "lo"
+  real:
+    domain_id: 0
+    interface: "enp3s0"
+    robot_ip: "192.168.123.161"
+    host_ip: "192.168.123.222"

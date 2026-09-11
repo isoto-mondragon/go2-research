@@ -429,3 +429,19 @@ ya está. El día a día es estos 7 pasos.
 ## Notas del entorno Ubuntu 26.04 + distrobox
 
 - unitree_mujoco: USE_JOYSTICK debe ser 0 en simulate_python/config.py o el hilo de fisica no arranca (el DDS sigue publicando, engañoso).
+
+## Simulacion en Ubuntu 26.04 + distrobox
+
+- `USE_JOYSTICK = 0` en `simulate_python/config.py`, o el hilo de fisica no
+  arranca. El DDS sigue publicando estado congelado y parece un fallo de control.
+- Un solo `unitree_mujoco` a la vez: `pgrep -fa unitree_mujoco` antes de empezar.
+  Dos instancias dan un estado incoherente indistinguible de un fallo de control.
+- `VIEWER_DT = 0.05` (20 fps). No tocar `SIMULATE_DT`.
+- `run_policy.py --publish-hz 200 --onnx-threads 1` en simulacion.
+  Con 500 Hz y onnxruntime multihilo se pierde el 19% de los plazos.
+  Para el robot real: 500 Hz, que alli no hay fisica compitiendo.
+- Teleop: usar `tools/teleop.py`, que lee el dominio DDS del contrato.
+  `src/go2core/comms/teleop_wireless.py` tiene domain 0 cableado y no llega
+  a unitree_mujoco (domain 1).
+- Levantarse: `--stand-mode direct`. El modo `fsm` es la config del deploy C++
+  y sus ganancias rigidas provocan temblor en simulacion.
