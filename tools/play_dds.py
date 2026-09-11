@@ -72,3 +72,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# NOTA (Ubuntu 26.04 + distrobox, 2026-09):
+# Este script NO es ejecutable en este entorno. Depende de mjlab, src.tasks y
+# rsl_rl, que arrastran mujoco-warp y warp-lang (CUDA) y el arbol completo de
+# unitree_rl_mjlab, deliberadamente no vendorizado aqui. Ademas carga un .pt,
+# no el policy.onnx.
+# Se conserva como referencia del stack de WSL2. Para desplegar, usar
+# usecases/uc01_locomotion/deploy/run_policy.py, que corre la misma politica
+# exportada a ONNX y sirve igual para simulacion y para el robot fisico.
