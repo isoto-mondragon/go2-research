@@ -1,0 +1,362 @@
+{
+  "fecha": "2026-09-14T11:58:12",
+  "politica": "experiments/uc01_locomotion/2026-09-14T1153_451100d_t4_15m_seed1/checkpoints/policy.onnx",
+  "masa_kg": 15.0,
+  "rollouts": 3,
+  "rollouts_validos": 3,
+  "tasa_caida": 0.0,
+  "schedule": [
+    [
+      0.0,
+      0.0,
+      0.0,
+      3.0
+    ],
+    [
+      0.3,
+      0.0,
+      0.0,
+      6.0
+    ],
+    [
+      0.6,
+      0.0,
+      0.0,
+      6.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.5,
+      6.0
+    ],
+    [
+      0.0,
+      0.3,
+      0.0,
+      6.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      3.0
+    ]
+  ],
+  "resultados": [
+    {
+      "rollout": 1,
+      "valid": true,
+      "fell": false,
+      "duracion_s": 31.1,
+      "segments": [
+        {
+          "segment": 0,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.0298,
+          "vy_med": -0.0064,
+          "wz_med": 0.0158,
+          "err_vx": 0.0298,
+          "err_wz": 0.0158,
+          "potencia_media_W": 9.45,
+          "CoT": null,
+          "inclinacion_max_deg": 10.9
+        },
+        {
+          "segment": 1,
+          "cmd": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.1649,
+          "vy_med": -0.0009,
+          "wz_med": 0.0055,
+          "err_vx": 0.1351,
+          "err_wz": 0.0055,
+          "potencia_media_W": 11.58,
+          "CoT": 0.262,
+          "inclinacion_max_deg": 2.0
+        },
+        {
+          "segment": 2,
+          "cmd": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.4346,
+          "vy_med": -0.003,
+          "wz_med": 0.0041,
+          "err_vx": 0.1654,
+          "err_wz": 0.0041,
+          "potencia_media_W": 30.27,
+          "CoT": 0.343,
+          "inclinacion_max_deg": 2.6
+        },
+        {
+          "segment": 3,
+          "cmd": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "vx_med": 0.0252,
+          "vy_med": -0.0048,
+          "wz_med": 0.2581,
+          "err_vx": 0.0252,
+          "err_wz": 0.2419,
+          "potencia_media_W": 12.46,
+          "CoT": null,
+          "inclinacion_max_deg": 3.7
+        },
+        {
+          "segment": 4,
+          "cmd": [
+            0.0,
+            0.3,
+            0.0
+          ],
+          "vx_med": -0.03,
+          "vy_med": 0.0891,
+          "wz_med": 0.0054,
+          "err_vx": 0.03,
+          "err_wz": 0.0054,
+          "potencia_media_W": 13.44,
+          "CoT": 0.304,
+          "inclinacion_max_deg": 2.0
+        },
+        {
+          "segment": 5,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_med": -0.0035,
+          "vy_med": 0.0063,
+          "wz_med": -0.0012,
+          "err_vx": 0.0035,
+          "err_wz": 0.0012,
+          "potencia_media_W": 0.68,
+          "CoT": null,
+          "inclinacion_max_deg": 1.2
+        }
+      ]
+    },
+    {
+      "rollout": 2,
+      "valid": true,
+      "fell": false,
+      "duracion_s": 31.1,
+      "segments": [
+        {
+          "segment": 0,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.0266,
+          "vy_med": -0.0012,
+          "wz_med": 0.0001,
+          "err_vx": 0.0266,
+          "err_wz": 0.0001,
+          "potencia_media_W": 6.87,
+          "CoT": null,
+          "inclinacion_max_deg": 6.6
+        },
+        {
+          "segment": 1,
+          "cmd": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.1624,
+          "vy_med": 0.0004,
+          "wz_med": 0.006,
+          "err_vx": 0.1376,
+          "err_wz": 0.006,
+          "potencia_media_W": 12.26,
+          "CoT": 0.278,
+          "inclinacion_max_deg": 1.8
+        },
+        {
+          "segment": 2,
+          "cmd": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.4429,
+          "vy_med": -0.0038,
+          "wz_med": 0.0018,
+          "err_vx": 0.1571,
+          "err_wz": 0.0018,
+          "potencia_media_W": 32.31,
+          "CoT": 0.366,
+          "inclinacion_max_deg": 2.9
+        },
+        {
+          "segment": 3,
+          "cmd": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "vx_med": 0.0242,
+          "vy_med": -0.0035,
+          "wz_med": 0.2601,
+          "err_vx": 0.0242,
+          "err_wz": 0.2399,
+          "potencia_media_W": 12.63,
+          "CoT": null,
+          "inclinacion_max_deg": 4.0
+        },
+        {
+          "segment": 4,
+          "cmd": [
+            0.0,
+            0.3,
+            0.0
+          ],
+          "vx_med": -0.0261,
+          "vy_med": 0.0885,
+          "wz_med": 0.0027,
+          "err_vx": 0.0261,
+          "err_wz": 0.0027,
+          "potencia_media_W": 14.21,
+          "CoT": 0.322,
+          "inclinacion_max_deg": 2.0
+        },
+        {
+          "segment": 5,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_med": -0.0035,
+          "vy_med": 0.0057,
+          "wz_med": -0.0011,
+          "err_vx": 0.0035,
+          "err_wz": 0.0011,
+          "potencia_media_W": 1.29,
+          "CoT": null,
+          "inclinacion_max_deg": 1.2
+        }
+      ]
+    },
+    {
+      "rollout": 3,
+      "valid": true,
+      "fell": false,
+      "duracion_s": 31.1,
+      "segments": [
+        {
+          "segment": 0,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.0302,
+          "vy_med": -0.0012,
+          "wz_med": 0.0014,
+          "err_vx": 0.0302,
+          "err_wz": 0.0014,
+          "potencia_media_W": 7.17,
+          "CoT": null,
+          "inclinacion_max_deg": 7.5
+        },
+        {
+          "segment": 1,
+          "cmd": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.1617,
+          "vy_med": 0.0003,
+          "wz_med": 0.0059,
+          "err_vx": 0.1383,
+          "err_wz": 0.0059,
+          "potencia_media_W": 12.25,
+          "CoT": 0.278,
+          "inclinacion_max_deg": 1.9
+        },
+        {
+          "segment": 2,
+          "cmd": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "vx_med": 0.4398,
+          "vy_med": -0.005,
+          "wz_med": 0.0029,
+          "err_vx": 0.1602,
+          "err_wz": 0.0029,
+          "potencia_media_W": 31.56,
+          "CoT": 0.357,
+          "inclinacion_max_deg": 2.8
+        },
+        {
+          "segment": 3,
+          "cmd": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "vx_med": 0.0223,
+          "vy_med": -0.005,
+          "wz_med": 0.2607,
+          "err_vx": 0.0223,
+          "err_wz": 0.2393,
+          "potencia_media_W": 12.32,
+          "CoT": null,
+          "inclinacion_max_deg": 3.5
+        },
+        {
+          "segment": 4,
+          "cmd": [
+            0.0,
+            0.3,
+            0.0
+          ],
+          "vx_med": -0.0303,
+          "vy_med": 0.0867,
+          "wz_med": 0.0037,
+          "err_vx": 0.0303,
+          "err_wz": 0.0037,
+          "potencia_media_W": 13.57,
+          "CoT": 0.307,
+          "inclinacion_max_deg": 2.0
+        },
+        {
+          "segment": 5,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_med": -0.0246,
+          "vy_med": 0.0078,
+          "wz_med": -0.0289,
+          "err_vx": 0.0246,
+          "err_wz": 0.0289,
+          "potencia_media_W": 42.49,
+          "CoT": null,
+          "inclinacion_max_deg": 5.1
+        }
+      ]
+    }
+  ],
+  "entorno": "unitree_mujoco simulate_python, domain 1, lo",
+  "limitacion": "los rollouts sucesivos parten del estado del anterior; para comparaciones estrictas relanzar el simulador y usar --rollouts 1"
+}
