@@ -70,7 +70,7 @@ hardware:
 # ---------------------------------------------------------------------------
 policy:
   format: onnx
-  path: experiments/uc01/legacy_wsl2/checkpoints/policy.onnx
+  path: experiments/uc01_locomotion/legacy_wsl2/checkpoints/policy.onnx
   input_name: obs          # verificado: obs [1, 47] float32
   output_name: actions     # verificado: actions [1, 12] float32
 
