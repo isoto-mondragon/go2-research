@@ -367,7 +367,7 @@ def main() -> int:
     writer = fh = None
     if args.log:
         fh = open(args.log, "w", newline="")
-        writer = csv.writer(fh)
+        writer = csv.writer(fh, lineterminator="\n")
         writer.writerow(["t", "vx_cmd", "vy_cmd", "wz_cmd", "tilt_rad",
                          "height", "hip_spread", "tau_max", "q_err_max"])
 

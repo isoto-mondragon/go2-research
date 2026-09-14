@@ -356,7 +356,7 @@ def main() -> int:
         out = Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
         with open(out / "metrics_sim.csv", "w", newline="") as f:
-            w = csv.writer(f)
+            w = csv.writer(f, lineterminator="\n")
             w.writerow(["rollout", "segment", "t", "vx_cmd", "vy_cmd", "wz_cmd",
                         "vx_med", "vy_med", "wz_med", "tilt_rad", "height",
                         "power_W", "tau_max"])
