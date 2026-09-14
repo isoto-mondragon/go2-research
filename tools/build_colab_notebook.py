@@ -63,14 +63,24 @@ el resultado para desplegarlo en `go2-research`.
 
 | presupuesto | semillas |
 |---|---|
+| 5 min | 1, 2, 3 |
 | 15 min | 1, 2, 3 |
 | 30 min | 1, 2, 3 |
 | 60 min | 1, 2, 3 |
 | 120 min | 1, 2, 3 |
 
-Unas 11 h de T4 en total. Se eligen 15-120 min en vez de 30-240 porque las
-sesiones de T4 gratuita se cortan a menudo por encima de 2 h; el rango sigue
-cubriendo un orden de magnitud.
+Unas 11.5 h de T4 en total, en 15 runs.
+
+El entrenamiento completo estima unas 7 h 30 con 4096 entornos en T4 gratuita,
+asi que el barrido cubre del 1 % al 27 % de ese total.
+
+El punto de 5 min se anade despues de ver que una politica de 15 min ya sigue
+comandos razonablemente bien: el tramo interesante de la curva esta por debajo
+de lo previsto, y sin ese punto se corre el riesgo de medir cuatro veces la
+meseta y concluir que el computo no importa.
+
+Las sesiones de T4 gratuita se cortan a menudo por encima de 2 h, por eso el
+techo esta en 120 min y no mas arriba.
 
 ## Para cada run
 
@@ -86,7 +96,7 @@ cells.append(md("## 0. Parametros del run"))
 cells.append(code(r"""
 # ===== LO UNICO QUE SE TOCA ENTRE RUNS =====
 SEED       = 1          # 1, 2 o 3
-BUDGET_MIN = 15         # 15, 30, 60 o 120
+BUDGET_MIN = 15         # 5, 15, 30, 60 o 120
 
 # Constantes del barrido
 NUM_ENVS = 4096
@@ -370,6 +380,23 @@ cells.append(md(r"""
 Arranca en segundo plano y **se para solo** al agotar `BUDGET_MIN`. No hay que
 pulsar stop: eso es justo lo que hace que el presupuesto sea exacto.
 
+### El mensaje final NO se ve, y es normal
+
+Colab cierra el stdout de la celda cuando termina su codigo sincrono. Como
+aqui el proceso y los hilos de seguimiento van en segundo plano, la celda
+recibe el tick verde a los pocos segundos y **todo lo que impriman los hilos
+despues se pierde**: el mensaje `terminado (exit=0)` no llega a verse nunca.
+
+El entrenamiento si corre. Para seguirlo, en una celda aparte:
+
+    !tail -n 40 /tmp/train_output.log
+    !ps aux | grep train.py | grep -v grep
+
+La celda de empaquetado detecta el final por si misma, asi que basta con
+esperar los `BUDGET_MIN` y ejecutarla.
+
+### Deteccion de flags
+
 Los nombres de los flags (`--agent.seed`, `--agent.save-interval`) cambian
 entre versiones de mjlab y tyro, asi que se leen del `--help` en vez de
 suponerlos. Si no aparece el de la semilla, la celda avisa en grande: un
@@ -527,14 +554,25 @@ for fname in ('policy.onnx', 'policy.onnx.data'):
     if os.path.exists(src):
         shutil.copy(src, dest); print(f"  {fname}")
 
-deploy_yaml = os.path.join(run_dir, 'params', 'deploy.yaml')
-if not os.path.exists(deploy_yaml):
-    raise RuntimeError(
-        "No hay params/deploy.yaml. Sin el, el run NO es desplegable: no se "
-        "sabe el orden de articulaciones ni el action_scale."
-    )
-shutil.copy(deploy_yaml, f'{dest}/deploy_params.yaml')
-print("  deploy_params.yaml  (renombrado desde deploy.yaml)")
+# scripts/train.py SOLO vuelca params/env.yaml y params/agent.yaml. NUNCA
+# escribe deploy.yaml. El contrato de despliegue describe la TAREA (orden de
+# articulaciones, ganancias, action_scale, las 47 observaciones), no el
+# entrenamiento, y viene en el propio repositorio. Las politicas del barrido
+# comparten tarea, luego comparten contrato: entre ellas solo cambian los pesos.
+#
+# NO sustituir por env.yaml: tiene otra estructura y el run pareceria valido
+# sin serlo.
+DEPLOY_YAML = ('/content/unitree_rl_mjlab/deploy/robots/go2/'
+               'config/policy/velocity/v0/params/deploy.yaml')
+if not os.path.exists(DEPLOY_YAML):
+    raise RuntimeError(f"No existe el contrato de la tarea en {DEPLOY_YAML}")
+shutil.copy(DEPLOY_YAML, f'{dest}/deploy_params.yaml')
+print("  deploy_params.yaml  (contrato de la tarea, desde el repo)")
+
+FSM_YAML = '/content/unitree_rl_mjlab/deploy/robots/go2/config/config.yaml'
+if os.path.exists(FSM_YAML):
+    shutil.copy(FSM_YAML, f'{dest}/fsm_config.yaml')
+    print("  fsm_config.yaml")
 
 for rel, dst in (('params/agent.yaml', 'agent.yaml'),
                  ('params/env.yaml', 'env.yaml')):
@@ -570,6 +608,7 @@ meta = {
     "timesteps": steps[-1] if steps else None,
     "fps": fps[-1] if fps else None,
     "log_dir": run_dir,
+    "deploy_yaml_origen": DEPLOY_YAML,
     "fecha": time.strftime('%Y-%m-%dT%H:%M:%S'),
 }
 with open(f'{dest}/train_meta.json', 'w') as f:
