@@ -6,7 +6,23 @@
   "entrenamiento": "Google Colab, GPU T4 gratuita, aprox. 2 h, unitree_rl_mjlab + mujoco_playground",
   "formato": "ONNX",
   "contrato": "usecases/uc01_locomotion/configs/deploy_config_legacy.yaml",
-  "git": {"sha": "desconocido", "dirty": null},
+  "git": {
+    "sha": "desconocido",
+    "dirty": null
+  },
   "limitaciones": "Anterior a la infraestructura de trazabilidad. Semilla, hiperparametros exactos y numero de pasos no registrados. Utilizable como linea base, NO citable como experimento controlado.",
-  "validado_en": "pendiente: unitree_mujoco (A7)"
+  "validado_en": "pendiente: unitree_mujoco (A7)",
+  "comparabilidad": {
+    "parte_del_barrido": false,
+    "motivo": "Entrenada con otro commit de unitree_rl_mjlab y otra version de mjlab, con presupuesto de computo incierto. NO es un punto de la curva presupuesto-rendimiento.",
+    "uso": "referencia historica del punto de partida del proyecto"
+  },
+  "evaluacion_sim": {
+    "entorno": "unitree_mujoco escena plana, 3 rollouts",
+    "seguimiento_vx_0.3": 0.151,
+    "seguimiento_vx_0.6": 0.403,
+    "seguimiento_wz_0.5": 0.178,
+    "seguimiento_vy_0.3": 0.112,
+    "caidas": "0/3"
+  }
 }
