@@ -62,6 +62,8 @@ hardware:
   tau_limit_hip_nm: 23.7
   tau_limit_thigh_nm: 23.7
   tau_limit_calf_nm: 45.43   # la rodilla lleva reduccion extra
+  mass_kg: 15.0              # PROVISIONAL: pesar el robot al recibirlo.
+                             # Entra directamente en el coste de transporte.
 
 # ---------------------------------------------------------------------------
 # Politica RL
