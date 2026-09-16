@@ -10,6 +10,7 @@ segmentos. Entrenamiento completo estimado: 7 h 30.
 | run | presupuesto | semilla | vx 0.3 | vx 0.6 | wz 0.5 | vy 0.3 | caidas | CoT 0.3 |
 |---|---|---|---|---|---|---|---|---|
 | t4_15m_seed1 | 15 min | 1 | 0.164 | 0.439 | 0.260 | 0.089 | 0/3 | 0.273 |
+| t4_5m_seed1 | 5 min | 1 | 0.293 | 0.589 | 0.157 | 0.001 | 0/3 | 0.066 |
 
 ## Pendientes
 
