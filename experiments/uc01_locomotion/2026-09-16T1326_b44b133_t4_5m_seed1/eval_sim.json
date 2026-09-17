@@ -1,10 +1,13 @@
 {
-  "fecha": "2026-09-16T13:30:01",
+  "fecha": "2026-09-17T10:52:21",
+  "evaluador_version": 3,
   "politica": "experiments/uc01_locomotion/2026-09-16T1326_b44b133_t4_5m_seed1/checkpoints/policy.onnx",
   "masa_kg": 15.0,
   "rollouts": 3,
   "rollouts_validos": 3,
-  "tasa_caida": 0.0,
+  "caidas": 0,
+  "camina": false,
+  "umbral_h_sd": 0.004,
   "schedule": [
     [
       0.0,
@@ -57,14 +60,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0257,
-          "vy_med": -0.0046,
-          "wz_med": 0.0134,
-          "err_vx": 0.0257,
-          "err_wz": 0.0134,
-          "potencia_media_W": 4.4,
+          "vx_neto": 0.023,
+          "vy_neto": -0.0044,
+          "wz_medido": 0.0134,
+          "vx_dif_finitas": 0.0236,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.07,
+          "h_sd": 0.0045,
+          "potencia_W": 4.1,
           "CoT": null,
-          "inclinacion_max_deg": 6.3
+          "inclinacion_max_deg": 4.5,
+          "veredicto": "reposo (sin comando)"
         },
         {
           "segment": 1,
@@ -73,14 +80,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.008,
-          "vy_med": -0.0009,
-          "wz_med": 0.0052,
-          "err_vx": 0.292,
-          "err_wz": 0.0052,
-          "potencia_media_W": 3.14,
-          "CoT": 0.071,
-          "inclinacion_max_deg": 3.1
+          "vx_neto": 0.007,
+          "vy_neto": -0.001,
+          "wz_medido": 0.0055,
+          "vx_dif_finitas": 0.0071,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.024,
+          "distancia_m": 0.043,
+          "h_sd": 0.0012,
+          "potencia_W": 3.0,
+          "CoT": null,
+          "inclinacion_max_deg": 3.1,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 2,
@@ -89,14 +100,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0111,
-          "vy_med": 0.0002,
-          "wz_med": 0.0038,
-          "err_vx": 0.5889,
-          "err_wz": 0.0038,
-          "potencia_media_W": 3.04,
-          "CoT": 0.034,
-          "inclinacion_max_deg": 3.3
+          "vx_neto": 0.0112,
+          "vy_neto": 0.0003,
+          "wz_medido": 0.0037,
+          "vx_dif_finitas": 0.0114,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.019,
+          "distancia_m": 0.067,
+          "h_sd": 0.0009,
+          "potencia_W": 3.1,
+          "CoT": null,
+          "inclinacion_max_deg": 3.3,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 3,
@@ -105,14 +120,18 @@
             0.0,
             0.5
           ],
-          "vx_med": 0.0386,
-          "vy_med": -0.0316,
-          "wz_med": 0.3455,
-          "err_vx": 0.0386,
-          "err_wz": 0.1545,
-          "potencia_media_W": 6.87,
+          "vx_neto": 0.0385,
+          "vy_neto": 0.0094,
+          "wz_medido": 0.341,
+          "vx_dif_finitas": 0.0374,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.682,
+          "distancia_m": 0.238,
+          "h_sd": 0.0015,
+          "potencia_W": 6.8,
           "CoT": null,
-          "inclinacion_max_deg": 3.9
+          "inclinacion_max_deg": 3.9,
+          "veredicto": "DESLIZA (patas rigidas)"
         },
         {
           "segment": 4,
@@ -121,14 +140,18 @@
             0.3,
             0.0
           ],
-          "vx_med": 0.0011,
-          "vy_med": 0.0015,
-          "wz_med": 0.0012,
-          "err_vx": 0.0011,
-          "err_wz": 0.0012,
-          "potencia_media_W": 2.29,
-          "CoT": 0.052,
-          "inclinacion_max_deg": 3.7
+          "vx_neto": 0.0014,
+          "vy_neto": 0.0015,
+          "wz_medido": 0.0012,
+          "vx_dif_finitas": 0.0015,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.007,
+          "distancia_m": 0.012,
+          "h_sd": 0.0009,
+          "potencia_W": 2.3,
+          "CoT": null,
+          "inclinacion_max_deg": 3.6,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 5,
@@ -137,14 +160,18 @@
             0.0,
             0.0
           ],
-          "vx_med": -0.0005,
-          "vy_med": -0.0014,
-          "wz_med": -0.0002,
-          "err_vx": 0.0005,
-          "err_wz": 0.0002,
-          "potencia_media_W": 0.18,
+          "vx_neto": -0.0006,
+          "vy_neto": -0.0014,
+          "wz_medido": -0.0001,
+          "vx_dif_finitas": -0.0006,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.004,
+          "h_sd": 0.0005,
+          "potencia_W": 0.2,
           "CoT": null,
-          "inclinacion_max_deg": 2.6
+          "inclinacion_max_deg": 2.7,
+          "veredicto": "reposo (sin comando)"
         }
       ]
     },
@@ -161,14 +188,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0331,
-          "vy_med": -0.0011,
-          "wz_med": 0.0024,
-          "err_vx": 0.0331,
-          "err_wz": 0.0024,
-          "potencia_media_W": 5.64,
+          "vx_neto": 0.0327,
+          "vy_neto": -0.0008,
+          "wz_medido": 0.0026,
+          "vx_dif_finitas": 0.0333,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.098,
+          "h_sd": 0.0062,
+          "potencia_W": 5.7,
           "CoT": null,
-          "inclinacion_max_deg": 7.0
+          "inclinacion_max_deg": 7.0,
+          "veredicto": "reposo (sin comando)"
         },
         {
           "segment": 1,
@@ -177,14 +208,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0066,
-          "vy_med": -0.0003,
-          "wz_med": 0.0054,
-          "err_vx": 0.2934,
-          "err_wz": 0.0054,
-          "potencia_media_W": 2.82,
-          "CoT": 0.064,
-          "inclinacion_max_deg": 3.1
+          "vx_neto": 0.0067,
+          "vy_neto": -0.0004,
+          "wz_medido": 0.0053,
+          "vx_dif_finitas": 0.0066,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.022,
+          "distancia_m": 0.04,
+          "h_sd": 0.0013,
+          "potencia_W": 2.8,
+          "CoT": null,
+          "inclinacion_max_deg": 3.1,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 2,
@@ -193,14 +228,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0111,
-          "vy_med": 0.0001,
-          "wz_med": 0.0039,
-          "err_vx": 0.5889,
-          "err_wz": 0.0039,
-          "potencia_media_W": 3.07,
-          "CoT": 0.035,
-          "inclinacion_max_deg": 3.3
+          "vx_neto": 0.0111,
+          "vy_neto": 0.0002,
+          "wz_medido": 0.0037,
+          "vx_dif_finitas": 0.0112,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.018,
+          "distancia_m": 0.067,
+          "h_sd": 0.0009,
+          "potencia_W": 3.0,
+          "CoT": null,
+          "inclinacion_max_deg": 3.3,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 3,
@@ -209,14 +248,18 @@
             0.0,
             0.5
           ],
-          "vx_med": 0.0381,
-          "vy_med": -0.0307,
-          "wz_med": 0.3416,
-          "err_vx": 0.0381,
-          "err_wz": 0.1584,
-          "potencia_media_W": 6.76,
+          "vx_neto": 0.0397,
+          "vy_neto": 0.0084,
+          "wz_medido": 0.3421,
+          "vx_dif_finitas": 0.0383,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.684,
+          "distancia_m": 0.244,
+          "h_sd": 0.0016,
+          "potencia_W": 6.9,
           "CoT": null,
-          "inclinacion_max_deg": 3.9
+          "inclinacion_max_deg": 3.9,
+          "veredicto": "DESLIZA (patas rigidas)"
         },
         {
           "segment": 4,
@@ -225,14 +268,18 @@
             0.3,
             0.0
           ],
-          "vx_med": 0.0013,
-          "vy_med": 0.0013,
-          "wz_med": 0.0003,
-          "err_vx": 0.0013,
-          "err_wz": 0.0003,
-          "potencia_media_W": 2.32,
-          "CoT": 0.052,
-          "inclinacion_max_deg": 3.7
+          "vx_neto": 0.0013,
+          "vy_neto": 0.0015,
+          "wz_medido": 0.0005,
+          "vx_dif_finitas": 0.0013,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.007,
+          "distancia_m": 0.012,
+          "h_sd": 0.001,
+          "potencia_W": 2.3,
+          "CoT": null,
+          "inclinacion_max_deg": 3.6,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 5,
@@ -241,14 +288,18 @@
             0.0,
             0.0
           ],
-          "vx_med": -0.0005,
-          "vy_med": -0.0014,
-          "wz_med": -0.0002,
-          "err_vx": 0.0005,
-          "err_wz": 0.0002,
-          "potencia_media_W": 0.17,
+          "vx_neto": -0.0005,
+          "vy_neto": -0.0014,
+          "wz_medido": -0.0002,
+          "vx_dif_finitas": -0.0005,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.004,
+          "h_sd": 0.0005,
+          "potencia_W": 0.2,
           "CoT": null,
-          "inclinacion_max_deg": 2.6
+          "inclinacion_max_deg": 2.7,
+          "veredicto": "reposo (sin comando)"
         }
       ]
     },
@@ -265,14 +316,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0335,
-          "vy_med": -0.0012,
-          "wz_med": 0.0023,
-          "err_vx": 0.0335,
-          "err_wz": 0.0023,
-          "potencia_media_W": 5.98,
+          "vx_neto": 0.0325,
+          "vy_neto": -0.0007,
+          "wz_medido": 0.0028,
+          "vx_dif_finitas": 0.0324,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.098,
+          "h_sd": 0.0058,
+          "potencia_W": 5.5,
           "CoT": null,
-          "inclinacion_max_deg": 7.0
+          "inclinacion_max_deg": 7.0,
+          "veredicto": "reposo (sin comando)"
         },
         {
           "segment": 1,
@@ -281,14 +336,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0064,
-          "vy_med": -0.0003,
-          "wz_med": 0.0053,
-          "err_vx": 0.2936,
-          "err_wz": 0.0053,
-          "potencia_media_W": 2.76,
-          "CoT": 0.063,
-          "inclinacion_max_deg": 3.1
+          "vx_neto": 0.0068,
+          "vy_neto": -0.0003,
+          "wz_medido": 0.005,
+          "vx_dif_finitas": 0.0069,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.023,
+          "distancia_m": 0.041,
+          "h_sd": 0.0014,
+          "potencia_W": 2.8,
+          "CoT": null,
+          "inclinacion_max_deg": 3.1,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 2,
@@ -297,14 +356,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0112,
-          "vy_med": 0.0001,
-          "wz_med": 0.0037,
-          "err_vx": 0.5888,
-          "err_wz": 0.0037,
-          "potencia_media_W": 3.05,
-          "CoT": 0.035,
-          "inclinacion_max_deg": 3.3
+          "vx_neto": 0.0113,
+          "vy_neto": 0.0002,
+          "wz_medido": 0.004,
+          "vx_dif_finitas": 0.0114,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.019,
+          "distancia_m": 0.068,
+          "h_sd": 0.001,
+          "potencia_W": 3.1,
+          "CoT": null,
+          "inclinacion_max_deg": 3.3,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 3,
@@ -313,14 +376,18 @@
             0.0,
             0.5
           ],
-          "vx_med": 0.0383,
-          "vy_med": -0.0317,
-          "wz_med": 0.3427,
-          "err_vx": 0.0383,
-          "err_wz": 0.1573,
-          "potencia_media_W": 6.84,
+          "vx_neto": 0.0401,
+          "vy_neto": 0.0098,
+          "wz_medido": 0.3413,
+          "vx_dif_finitas": 0.0387,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.683,
+          "distancia_m": 0.248,
+          "h_sd": 0.0016,
+          "potencia_W": 6.8,
           "CoT": null,
-          "inclinacion_max_deg": 3.9
+          "inclinacion_max_deg": 4.1,
+          "veredicto": "DESLIZA (patas rigidas)"
         },
         {
           "segment": 4,
@@ -329,14 +396,18 @@
             0.3,
             0.0
           ],
-          "vx_med": 0.0014,
-          "vy_med": 0.0013,
-          "wz_med": 0.0003,
-          "err_vx": 0.0014,
-          "err_wz": 0.0003,
-          "potencia_media_W": 2.3,
-          "CoT": 0.052,
-          "inclinacion_max_deg": 3.7
+          "vx_neto": 0.0012,
+          "vy_neto": 0.0015,
+          "wz_medido": 0.0001,
+          "vx_dif_finitas": 0.0012,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.006,
+          "distancia_m": 0.011,
+          "h_sd": 0.0009,
+          "potencia_W": 2.3,
+          "CoT": null,
+          "inclinacion_max_deg": 3.6,
+          "veredicto": "NO OBEDECE"
         },
         {
           "segment": 5,
@@ -345,18 +416,21 @@
             0.0,
             0.0
           ],
-          "vx_med": -0.0005,
-          "vy_med": -0.0014,
-          "wz_med": -0.0002,
-          "err_vx": 0.0005,
-          "err_wz": 0.0002,
-          "potencia_media_W": 0.17,
+          "vx_neto": -0.0005,
+          "vy_neto": -0.0014,
+          "wz_medido": -0.0001,
+          "vx_dif_finitas": -0.0005,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.004,
+          "h_sd": 0.0004,
+          "potencia_W": 0.2,
           "CoT": null,
-          "inclinacion_max_deg": 2.7
+          "inclinacion_max_deg": 2.6,
+          "veredicto": "reposo (sin comando)"
         }
       ]
     }
   ],
-  "entorno": "unitree_mujoco simulate_python, domain 1, lo",
-  "limitacion": "los rollouts sucesivos parten del estado del anterior; para comparaciones estrictas relanzar el simulador y usar --rollouts 1"
+  "entorno": "unitree_mujoco simulate_python, domain 1, lo, escena plana"
 }

@@ -1,35 +1,44 @@
 #!/usr/bin/env python3
-"""usecases/uc01_locomotion/eval/eval_sim.py
+"""usecases/uc01_locomotion/eval/eval_sim.py  (v3)
 
 Evaluacion reproducible de una politica de locomocion en unitree_mujoco.
 
-Ejecuta N rollouts con la MISMA secuencia de comandos y mide:
+CAMBIOS DE LA v3
+----------------
+1. La tabla muestra COMANDO, MEDIDO y SEGUIMIENTO %, no el error. La v2
+   imprimia una columna `err vx` que se confundio con la velocidad medida: un
+   0.293 de error con comando 0.3 se leyo como "sigue el comando al 98 %"
+   cuando significaba justo lo contrario.
 
-  - error de seguimiento de velocidad (vx, vy, wz) contra verdad-terreno
-  - tasa de caida
-  - coste de transporte (CoT), la metrica de la linea de investigacion
-    energetica
-  - par maximo por articulacion
+2. La velocidad se calcula por DESPLAZAMIENTO NETO del segmento dividido por
+   su duracion, no promediando diferencias finitas paso a paso. Un solo numero,
+   sin depender de cuantas muestras de sportmodestate lleguen. Se calcula
+   tambien la media de diferencias finitas y se marca si discrepan.
+
+3. Metricas de MARCHA ademas de seguimiento. El seguimiento por si solo no
+   mide lo que parece: una politica que desliza el cuerpo con las patas rigidas
+   puede puntuar bien, gastar poca energia y no caerse, y en el robot real se
+   caeria o destrozaria los pies. El discriminador es la desviacion tipica de
+   la altura del tronco, calculada desde los angulos articulares: si el robot
+   da pasos, oscila.
+
+   Umbrales calibrados con tres politicas reales (2026-09-16):
+       caminan (15 min, legacy) -> h_sd 0.006 a 0.010
+       no camina (5 min)        -> h_sd 0.0005 a 0.0016
+   Frontera en 0.004.
+
+4. Veredicto de validez por politica. Una politica que no camina queda
+   registrada como tal en vez de aportar una fila enganosa a la curva.
 
 VERDAD-TERRENO
 --------------
 `lowstate` no da velocidad de la base. En simulacion, unitree_mujoco publica
-`rt/sportmodestate` con la posicion real del tronco: de ahi se deriva la
-velocidad por diferencias finitas y se rota al sistema del cuerpo con el
-cuaternion de `lowstate`. La velocidad angular sale del giroscopo, que si esta
-en `lowstate` y es directa.
+`rt/sportmodestate` con la posicion real del tronco. La velocidad angular sale
+del giroscopo, que si esta en `lowstate`.
 
-En el ROBOT REAL esto NO esta disponible: al liberar sport_mode el servicio
-deja de publicar. El protocolo real es distinto (distancia recorrida en tiempo
-fijo, medida con marcas en el suelo) y va en eval_real.py.
-
-LIMITACION CONOCIDA
--------------------
-No se puede reiniciar el simulador desde fuera, asi que los rollouts sucesivos
-parten del estado en que quedo el anterior. Entre rollouts se pasa por passive
-y se vuelve a levantar, y se registra la pose de partida de cada uno. Para
-comparaciones estrictas entre politicas, relanzar el simulador entre
-invocaciones y usar --rollouts 1.
+En el ROBOT REAL nada de esto esta disponible: al liberar sport_mode el
+servicio deja de publicar. El protocolo real es distinto (distancia recorrida
+en tiempo fijo, con marcas en el suelo) y va en eval_real.py.
 
 Uso:
     python3 usecases/uc01_locomotion/eval/eval_sim.py \\
@@ -43,18 +52,18 @@ import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
-import argparse       # noqa: E402
-import csv            # noqa: E402
-import json           # noqa: E402
-import math           # noqa: E402
+import argparse          # noqa: E402
+import csv               # noqa: E402
+import json              # noqa: E402
+import math              # noqa: E402
 import statistics as st  # noqa: E402
-import sys            # noqa: E402
-import threading      # noqa: E402
-import time           # noqa: E402
+import sys               # noqa: E402
+import threading         # noqa: E402
+import time              # noqa: E402
 from datetime import datetime  # noqa: E402
 from pathlib import Path       # noqa: E402
 
-import numpy as np    # noqa: E402
+import numpy as np       # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -64,17 +73,19 @@ from go2core.control.lowlevel import LowLevel, SafetyTrip  # noqa: E402
 
 DEFAULT_CONTRACT = REPO_ROOT / "usecases/uc01_locomotion/configs/robot_go2.yaml"
 
-# Secuencia fija de comandos. Identica en todos los rollouts y todas las
-# politicas: es lo que hace los resultados comparables.
-# (vx, vy, wz, segundos)
+# Secuencia fija. Identica en todos los rollouts y todas las politicas: es lo
+# que hace los resultados comparables.  (vx, vy, wz, segundos)
 SCHEDULE = [
-    (0.0, 0.0, 0.0, 3.0),    # asentarse
+    (0.0, 0.0, 0.0, 3.0),
     (0.3, 0.0, 0.0, 6.0),
     (0.6, 0.0, 0.0, 6.0),
     (0.0, 0.0, 0.5, 6.0),
     (0.0, 0.3, 0.0, 6.0),
     (0.0, 0.0, 0.0, 3.0),
 ]
+
+H_SD_CAMINA = 0.004      # frontera calibrada con datos reales
+P_MIN_CAMINA = 8.0       # W mecanicos minimos de una marcha real
 
 
 class GroundTruth:
@@ -111,13 +122,11 @@ def yaw_from_quat(q: np.ndarray) -> float:
     return math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
 
 
-def body_velocity(dp: np.ndarray, dt: float, yaw: float) -> np.ndarray:
-    """Velocidad mundial rotada al plano del cuerpo (vx adelante, vy izquierda)."""
-    if dt <= 0:
-        return np.zeros(2, dtype=np.float32)
-    vw = dp[:2] / dt
+def to_body(dp: np.ndarray, yaw: float) -> np.ndarray:
+    """Desplazamiento mundial rotado al plano del cuerpo (x adelante, y izq)."""
     cy, sy = math.cos(-yaw), math.sin(-yaw)
-    return np.asarray([cy * vw[0] - sy * vw[1], sy * vw[0] + cy * vw[1]], dtype=np.float32)
+    return np.asarray([cy * dp[0] - sy * dp[1], sy * dp[0] + cy * dp[1]],
+                      dtype=np.float64)
 
 
 def build_obs(ll: LowLevel, c: dict, cmd: np.ndarray, phase: float,
@@ -159,10 +168,27 @@ def ramp_to(ll: LowLevel, q_to: np.ndarray, kp: np.ndarray, kd: np.ndarray,
     time.sleep(0.3)
 
 
-def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess, in_name: str,
-                out_name: str, mass_kg: float, fall_tilt_rad: float,
-                rows: list) -> dict:
-    """Un rollout completo. Devuelve metricas agregadas por segmento."""
+def veredicto_segmento(cmd_speed: float, cmd_yaw: float, h_sd: float,
+                       potencia: float, seguimiento: float | None) -> str:
+    """Etiqueta el segmento. Se decide por el COMANDO, no por lo medido: un
+    segmento donde se pidio andar y el robot no se movio es un FALLO, no un
+    'quieto esperado'."""
+    if cmd_speed < 0.05 and abs(cmd_yaw) < 0.05:
+        return "reposo (sin comando)"
+    if seguimiento is not None and seguimiento < 0.15:
+        return "NO OBEDECE"
+    if h_sd < H_SD_CAMINA and potencia < P_MIN_CAMINA:
+        return "DESLIZA (patas rigidas)"
+    if h_sd < H_SD_CAMINA:
+        return "SOSPECHOSO (altura plana)"
+    if seguimiento is not None and seguimiento < 0.4:
+        return "camina, seguimiento pobre"
+    return "camina"
+
+
+def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess,
+                in_name: str, out_name: str, mass_kg: float,
+                fall_tilt: float, rows: list) -> dict:
     kp_pol, kd_pol = ct.policy_gains_motor(c)
     offset_motor = ct.policy_defaults_motor(c)
     scale = np.asarray(c["policy"]["action"]["scale"], dtype=np.float32)
@@ -171,32 +197,34 @@ def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess, in_name:
     period = float(c["obs"]["gait_phase"]["period_s"])
 
     print(f"\n--- rollout {idx} ---")
-    print(f"  pose de partida: altura ~{ll.height_proxy():.3f} m")
     ramp_to(ll, offset_motor, kp_pol, kd_pol, 1.5)
-    h0 = ll.height_proxy()
-    if h0 < 0.18:
-        print(f"  ABORTADO: no se ha levantado (altura {h0:.3f} m)")
-        return {"rollout": idx, "valid": False, "reason": "no se levanta", "segments": []}
+    if ll.height_proxy() < 0.18:
+        print(f"  ABORTADO: no se levanta (altura {ll.height_proxy():.3f} m)")
+        return {"rollout": idx, "valid": False, "motivo": "no se levanta",
+                "segments": []}
 
     last_action = np.zeros(12, dtype=np.float32)
     phase = 0.0
     fell = False
     segments = []
     t_roll = time.monotonic()
-
-    prev_pos, prev_t = gt.get()
     next_tick = time.monotonic()
 
     for seg_i, (vx, vy, wz, secs) in enumerate(SCHEDULE):
         cmd = np.asarray([vx, vy, wz], dtype=np.float32)
-        meas_vx, meas_vy, meas_wz, power, tilts = [], [], [], [], []
-        t_seg = time.monotonic()
+        fd_vx, wz_meas, power, tilts, heights = [], [], [], [], []
 
-        while time.monotonic() - t_seg < secs:
+        # Referencia para el desplazamiento NETO del segmento.
+        pos0, _ = gt.get()
+        yaw0 = yaw_from_quat(ll.quaternion())
+        t_seg0 = time.monotonic()
+        prev_pos, prev_t = pos0, t_seg0
+
+        while time.monotonic() - t_seg0 < secs:
             try:
                 ll.check_safety()
             except SafetyTrip as e:
-                print(f"  caida/disparo en segmento {seg_i}: {e}")
+                print(f"  disparo de seguridad en seg {seg_i}: {e}")
                 fell = True
                 break
 
@@ -207,77 +235,114 @@ def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess, in_name:
             ll.set_command_clamped(ct.policy_to_motor(act * scale + offset_p, c),
                                    kp_pol, kd_pol, offset_motor)
 
-            # --- medidas ---
             pos, t_now = gt.get()
             dt_gt = t_now - prev_t
             if dt_gt > 1e-3:
-                v_body = body_velocity(pos - prev_pos, dt_gt, yaw_from_quat(ll.quaternion()))
-                meas_vx.append(float(v_body[0]))
-                meas_vy.append(float(v_body[1]))
+                v = to_body(pos - prev_pos, yaw_from_quat(ll.quaternion())) / dt_gt
+                fd_vx.append(float(v[0]))
                 prev_pos, prev_t = pos, t_now
-            meas_wz.append(float(ll.gyro()[2]))
+            wz_meas.append(float(ll.gyro()[2]))
 
             tau, dq = ll.joint_tau(), ll.joint_dq()
-            power.append(float(np.sum(np.abs(tau * dq))))    # W mecanicos
+            power.append(float(np.sum(np.abs(tau * dq))))
+            h = ll.height_proxy()
+            heights.append(h)
             tilt = ll.tilt_rad()
             tilts.append(tilt)
-            if tilt > fall_tilt_rad:
-                print(f"  caida en segmento {seg_i}: inclinacion "
-                      f"{np.degrees(tilt):.0f} deg")
+            if tilt > fall_tilt:
+                print(f"  CAIDA en seg {seg_i} (inclinacion "
+                      f"{math.degrees(tilt):.0f} deg)")
                 fell = True
                 break
 
             rows.append([idx, seg_i, f"{time.monotonic() - t_roll:.3f}",
                          vx, vy, wz,
-                         f"{meas_vx[-1] if meas_vx else 0.0:.4f}",
-                         f"{meas_vy[-1] if meas_vy else 0.0:.4f}",
-                         f"{meas_wz[-1]:.4f}", f"{tilt:.4f}",
-                         f"{ll.height_proxy():.4f}", f"{power[-1]:.2f}",
-                         f"{np.abs(tau).max():.2f}"])
+                         f"{fd_vx[-1] if fd_vx else 0.0:.4f}",
+                         f"{wz_meas[-1]:.4f}", f"{tilt:.4f}", f"{h:.4f}",
+                         f"{power[-1]:.2f}", f"{np.abs(tau).max():.2f}"])
 
             next_tick += step_dt
             time.sleep(max(0.0, next_tick - time.monotonic()))
 
-        speed = math.hypot(vx, vy)
-        mean_p = st.mean(power) if power else 0.0
-        cot = (mean_p / (mass_kg * 9.81 * speed)) if speed > 0.05 and mean_p > 0 else None
+        # --- medida robusta: desplazamiento NETO / duracion ---
+        dur = max(time.monotonic() - t_seg0, 1e-6)
+        pos1, _ = gt.get()
+        d_body = to_body(pos1 - pos0, yaw0)
+        net_vx, net_vy = d_body[0] / dur, d_body[1] / dur
+
+        h_sd = st.pstdev(heights) if len(heights) > 1 else 0.0
+        p_mean = st.mean(power) if power else 0.0
+        wz_mean = st.mean(wz_meas) if wz_meas else 0.0
+        speed_cmd = math.hypot(vx, vy)
+
+        if speed_cmd > 0.05:
+            seguimiento = math.hypot(net_vx, net_vy) / speed_cmd
+        elif abs(wz) > 0.05:
+            seguimiento = abs(wz_mean) / abs(wz)
+        else:
+            seguimiento = None
+
+        cot = (p_mean / (mass_kg * 9.81 * abs(net_vx))
+               if abs(net_vx) > 0.05 and p_mean > 0 else None)
+
+        v = veredicto_segmento(speed_cmd, wz, h_sd, p_mean, seguimiento)
+
+        fd_mean = st.mean(fd_vx) if fd_vx else 0.0
+        discrepa = abs(fd_mean - net_vx) > max(0.05, 0.25 * abs(net_vx))
 
         segments.append({
-            "segment": seg_i,
-            "cmd": [vx, vy, wz],
-            "vx_med": round(st.mean(meas_vx), 4) if meas_vx else None,
-            "vy_med": round(st.mean(meas_vy), 4) if meas_vy else None,
-            "wz_med": round(st.mean(meas_wz), 4) if meas_wz else None,
-            "err_vx": round(abs(vx - st.mean(meas_vx)), 4) if meas_vx else None,
-            "err_wz": round(abs(wz - st.mean(meas_wz)), 4) if meas_wz else None,
-            "potencia_media_W": round(mean_p, 2),
+            "segment": seg_i, "cmd": [vx, vy, wz],
+            "vx_neto": round(net_vx, 4), "vy_neto": round(net_vy, 4),
+            "wz_medido": round(wz_mean, 4),
+            "vx_dif_finitas": round(fd_mean, 4),
+            "discrepancia_metodos": bool(discrepa),
+            "seguimiento": round(seguimiento, 3) if seguimiento is not None else None,
+            "distancia_m": round(float(math.hypot(d_body[0], d_body[1])), 3),
+            "h_sd": round(h_sd, 4),
+            "potencia_W": round(p_mean, 1),
             "CoT": round(cot, 3) if cot else None,
             "inclinacion_max_deg": round(math.degrees(max(tilts)), 1) if tilts else None,
+            "veredicto": v,
         })
-        print(f"  seg {seg_i} cmd=({vx:+.1f},{vy:+.1f},{wz:+.1f}) "
-              f"medido=({segments[-1]['vx_med']},{segments[-1]['vy_med']},"
-              f"{segments[-1]['wz_med']}) "
-              f"P={mean_p:.0f}W CoT={segments[-1]['CoT']}")
         if fell:
             break
 
     ll.go_passive()
     time.sleep(1.0)
     return {"rollout": idx, "valid": True, "fell": fell,
-            "duracion_s": round(time.monotonic() - t_roll, 1), "segments": segments}
+            "duracion_s": round(time.monotonic() - t_roll, 1),
+            "segments": segments}
+
+
+def tabla(segs: list[dict]) -> None:
+    print(f"\n  {'seg':>3} {'comando':<17} {'medido':>9} {'segui':>7} "
+          f"{'dist':>7} {'h sd':>7} {'P(W)':>6} {'CoT':>6}  veredicto")
+    for s in segs:
+        vx, vy, wz = s["cmd"]
+        if abs(vx) > 0.05:
+            med = f"{s['vx_neto']:+.3f}"
+        elif abs(vy) > 0.05:
+            med = f"{s['vy_neto']:+.3f}"
+        else:
+            med = f"{s['wz_medido']:+.3f}"
+        seg = f"{100 * s['seguimiento']:5.0f}%" if s["seguimiento"] is not None else "    -"
+        cot = f"{s['CoT']:.3f}" if s["CoT"] else "    -"
+        flag = "  [!] metodos discrepan" if s["discrepancia_metodos"] else ""
+        print(f"  {s['segment']:>3} ({vx:+.1f},{vy:+.1f},{wz:+.1f})      "
+              f"{med:>9} {seg:>7} {s['distancia_m']:7.2f} {s['h_sd']:7.4f} "
+              f"{s['potencia_W']:6.1f} {cot:>6}  {s['veredicto']}{flag}")
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--policy", default=None, help="ruta al .onnx (defecto: el del contrato)")
+    p.add_argument("--policy", default=None)
     p.add_argument("--contract", default=str(DEFAULT_CONTRACT))
     p.add_argument("--rollouts", type=int, default=3)
     p.add_argument("--publish-hz", type=float, default=200.0)
-    p.add_argument("--mass-kg", type=float, default=None,
-                   help="masa del robot para el CoT (defecto: hardware.mass_kg o 15.0)")
+    p.add_argument("--mass-kg", type=float, default=None)
     p.add_argument("--fall-tilt-deg", type=float, default=50.0)
-    p.add_argument("--out", default=None, help="carpeta donde escribir metricas y resumen")
+    p.add_argument("--out", default=None)
     args = p.parse_args()
 
     c = ct.load_contract(args.contract)
@@ -301,7 +366,8 @@ def main() -> int:
     print(f"politica : {policy_path}")
     print(f"masa     : {mass} kg | rollouts: {args.rollouts}")
     print(f"secuencia: {len(SCHEDULE)} segmentos, "
-          f"{sum(s[3] for s in SCHEDULE):.0f} s por rollout\n")
+          f"{sum(s[3] for s in SCHEDULE):.0f} s por rollout")
+    print(f"umbral de marcha: h_sd >= {H_SD_CAMINA}, potencia >= {P_MIN_CAMINA} W\n")
 
     ll = LowLevel(c, mode="sim")
     ll.publish_dt = 1.0 / args.publish_hz
@@ -318,39 +384,67 @@ def main() -> int:
         if gt.n == 0:
             print("rt/sportmodestate no publica. Sin verdad-terreno no hay evaluacion.")
             return 2
-        print(f"verdad-terreno OK ({gt.n} mensajes)\n")
+        print(f"verdad-terreno OK ({gt.n} mensajes)")
 
         for i in range(1, args.rollouts + 1):
-            results.append(run_rollout(i, ll, gt, c, sess, in_name, out_name,
-                                       mass, math.radians(args.fall_tilt_deg), rows))
+            r = run_rollout(i, ll, gt, c, sess, in_name, out_name, mass,
+                            math.radians(args.fall_tilt_deg), rows)
+            results.append(r)
+            if r.get("segments"):
+                tabla(r["segments"])
     except KeyboardInterrupt:
         print("\ninterrumpido")
     finally:
         ll.stop()
 
-    # --- agregado ---
-    valid = [r for r in results if r.get("valid")]
-    fells = sum(1 for r in valid if r.get("fell"))
-    print("\n" + "=" * 60)
-    print(f"rollouts validos : {len(valid)}/{args.rollouts}")
-    print(f"caidas           : {fells}/{max(len(valid), 1)} "
-          f"({100.0 * fells / max(len(valid), 1):.0f} %)")
+    # ---------------- agregado ----------------
+    validos = [r for r in results if r.get("valid")]
+    caidas = sum(1 for r in validos if r.get("fell"))
 
-    by_seg: dict[int, dict[str, list]] = {}
-    for r in valid:
+    por_seg: dict[int, dict[str, list]] = {}
+    for r in validos:
         for s in r["segments"]:
-            d = by_seg.setdefault(s["segment"], {"err_vx": [], "err_wz": [], "cot": []})
-            for k, key in (("err_vx", "err_vx"), ("err_wz", "err_wz"), ("cot", "CoT")):
-                if s.get(key) is not None:
-                    d[k].append(s[key])
+            d = por_seg.setdefault(s["segment"],
+                                   {"seg": [], "hsd": [], "cot": [], "ver": []})
+            if s["seguimiento"] is not None:
+                d["seg"].append(s["seguimiento"])
+            d["hsd"].append(s["h_sd"])
+            if s["CoT"]:
+                d["cot"].append(s["CoT"])
+            d["ver"].append(s["veredicto"])
 
-    print(f"\n  {'seg':>3} {'comando':<18} {'err vx':>8} {'err wz':>8} {'CoT':>8}")
-    for seg_i, d in sorted(by_seg.items()):
-        vx, vy, wz, _ = SCHEDULE[seg_i]
-        ev = f"{st.mean(d['err_vx']):.3f}" if d["err_vx"] else "-"
-        ew = f"{st.mean(d['err_wz']):.3f}" if d["err_wz"] else "-"
-        ct_ = f"{st.mean(d['cot']):.3f}" if d["cot"] else "-"
-        print(f"  {seg_i:>3} ({vx:+.1f},{vy:+.1f},{wz:+.1f})       {ev:>8} {ew:>8} {ct_:>8}")
+    print("\n" + "=" * 78)
+    print(f"rollouts validos: {len(validos)}/{args.rollouts} | "
+          f"caidas: {caidas}/{max(len(validos), 1)}")
+    print(f"\n  {'seg':>3} {'comando':<17} {'seguimiento':>12} {'h sd':>8} "
+          f"{'CoT':>7}  veredicto dominante")
+    for i, d in sorted(por_seg.items()):
+        vx, vy, wz, _ = SCHEDULE[i]
+        sg = f"{100 * st.mean(d['seg']):10.0f} %" if d["seg"] else "         -"
+        cot = f"{st.mean(d['cot']):.3f}" if d["cot"] else "      -"
+        dom = max(set(d["ver"]), key=d["ver"].count)
+        print(f"  {i:>3} ({vx:+.1f},{vy:+.1f},{wz:+.1f})      {sg:>12} "
+              f"{st.mean(d['hsd']):8.4f} {cot:>7}  {dom}")
+
+    # ---------------- veredicto de la politica ----------------
+    con_cmd = [s for r in validos for s in r["segments"]
+               if s["veredicto"] != "reposo (sin comando)"]
+    malos = [s for s in con_cmd
+             if s["veredicto"].startswith(("NO OBEDECE", "DESLIZA", "SOSPECHOSO"))]
+    camina = len(malos) < len(con_cmd) / 2 if con_cmd else False
+
+    print(f"\n  segmentos con comando: {len(con_cmd)} | degenerados: {len(malos)}")
+    print("=" * 78)
+    if camina and caidas == 0:
+        print("  VEREDICTO: la politica CAMINA. Sus metricas son comparables.")
+    elif camina:
+        print(f"  VEREDICTO: camina pero se cae ({caidas} de {len(validos)}).")
+    else:
+        print("  VEREDICTO: la politica NO CAMINA de forma fiable.")
+        print("  Sus numeros de seguimiento NO son comparables con los de una")
+        print("  politica que si camina. Registrar el run como no valido para la")
+        print("  curva, no descartarlo: que un presupuesto no baste para aprender")
+        print("  a andar ES un resultado.")
 
     if args.out:
         out = Path(args.out)
@@ -358,26 +452,27 @@ def main() -> int:
         with open(out / "metrics_sim.csv", "w", newline="") as f:
             w = csv.writer(f, lineterminator="\n")
             w.writerow(["rollout", "segment", "t", "vx_cmd", "vy_cmd", "wz_cmd",
-                        "vx_med", "vy_med", "wz_med", "tilt_rad", "height",
+                        "vx_med", "wz_med", "tilt_rad", "height",
                         "power_W", "tau_max"])
             w.writerows(rows)
-        summary = {
+        resumen = {
             "fecha": datetime.now().isoformat(timespec="seconds"),
+            "evaluador_version": 3,
             "politica": str(policy_path),
             "masa_kg": mass,
             "rollouts": args.rollouts,
-            "rollouts_validos": len(valid),
-            "tasa_caida": round(fells / max(len(valid), 1), 3),
+            "rollouts_validos": len(validos),
+            "caidas": caidas,
+            "camina": camina,
+            "umbral_h_sd": H_SD_CAMINA,
             "schedule": [list(s) for s in SCHEDULE],
             "resultados": results,
-            "entorno": "unitree_mujoco simulate_python, domain 1, lo",
-            "limitacion": ("los rollouts sucesivos parten del estado del anterior; "
-                           "para comparaciones estrictas relanzar el simulador y usar "
-                           "--rollouts 1"),
+            "entorno": "unitree_mujoco simulate_python, domain 1, lo, escena plana",
         }
-        (out / "eval_sim.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
-        print(f"\nescrito: {out / 'metrics_sim.csv'}")
-        print(f"         {out / 'eval_sim.json'}")
+        (out / "eval_sim.json").write_text(
+            json.dumps(resumen, indent=2, ensure_ascii=False))
+        print(f"\n  escrito: {out / 'metrics_sim.csv'}")
+        print(f"           {out / 'eval_sim.json'}")
 
     return 0
 

@@ -1,10 +1,13 @@
 {
-  "fecha": "2026-09-14T11:58:12",
+  "fecha": "2026-09-17T10:50:25",
+  "evaluador_version": 3,
   "politica": "experiments/uc01_locomotion/2026-09-14T1153_451100d_t4_15m_seed1/checkpoints/policy.onnx",
   "masa_kg": 15.0,
   "rollouts": 3,
   "rollouts_validos": 3,
-  "tasa_caida": 0.0,
+  "caidas": 0,
+  "camina": true,
+  "umbral_h_sd": 0.004,
   "schedule": [
     [
       0.0,
@@ -57,14 +60,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0298,
-          "vy_med": -0.0064,
-          "wz_med": 0.0158,
-          "err_vx": 0.0298,
-          "err_wz": 0.0158,
-          "potencia_media_W": 9.45,
+          "vx_neto": 0.0198,
+          "vy_neto": -0.0064,
+          "wz_medido": 0.0221,
+          "vx_dif_finitas": 0.0195,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.062,
+          "h_sd": 0.0072,
+          "potencia_W": 7.4,
           "CoT": null,
-          "inclinacion_max_deg": 10.9
+          "inclinacion_max_deg": 5.6,
+          "veredicto": "reposo (sin comando)"
         },
         {
           "segment": 1,
@@ -73,14 +80,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.1649,
-          "vy_med": -0.0009,
-          "wz_med": 0.0055,
-          "err_vx": 0.1351,
-          "err_wz": 0.0055,
-          "potencia_media_W": 11.58,
-          "CoT": 0.262,
-          "inclinacion_max_deg": 2.0
+          "vx_neto": 0.1583,
+          "vy_neto": 0.0027,
+          "wz_medido": 0.0068,
+          "vx_dif_finitas": 0.1594,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.528,
+          "distancia_m": 0.953,
+          "h_sd": 0.007,
+          "potencia_W": 12.9,
+          "CoT": 0.552,
+          "inclinacion_max_deg": 1.9,
+          "veredicto": "camina"
         },
         {
           "segment": 2,
@@ -89,14 +100,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.4346,
-          "vy_med": -0.003,
-          "wz_med": 0.0041,
-          "err_vx": 0.1654,
-          "err_wz": 0.0041,
-          "potencia_media_W": 30.27,
-          "CoT": 0.343,
-          "inclinacion_max_deg": 2.6
+          "vx_neto": 0.4277,
+          "vy_neto": -0.0038,
+          "wz_medido": 0.0009,
+          "vx_dif_finitas": 0.4314,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.713,
+          "distancia_m": 2.574,
+          "h_sd": 0.008,
+          "potencia_W": 32.5,
+          "CoT": 0.516,
+          "inclinacion_max_deg": 2.7,
+          "veredicto": "camina"
         },
         {
           "segment": 3,
@@ -105,14 +120,18 @@
             0.0,
             0.5
           ],
-          "vx_med": 0.0252,
-          "vy_med": -0.0048,
-          "wz_med": 0.2581,
-          "err_vx": 0.0252,
-          "err_wz": 0.2419,
-          "potencia_media_W": 12.46,
+          "vx_neto": 0.0219,
+          "vy_neto": 0.0001,
+          "wz_medido": 0.2622,
+          "vx_dif_finitas": 0.0256,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.524,
+          "distancia_m": 0.132,
+          "h_sd": 0.0066,
+          "potencia_W": 12.3,
           "CoT": null,
-          "inclinacion_max_deg": 3.7
+          "inclinacion_max_deg": 3.5,
+          "veredicto": "camina"
         },
         {
           "segment": 4,
@@ -121,14 +140,18 @@
             0.3,
             0.0
           ],
-          "vx_med": -0.03,
-          "vy_med": 0.0891,
-          "wz_med": 0.0054,
-          "err_vx": 0.03,
-          "err_wz": 0.0054,
-          "potencia_media_W": 13.44,
-          "CoT": 0.304,
-          "inclinacion_max_deg": 2.0
+          "vx_neto": -0.0251,
+          "vy_neto": 0.0819,
+          "wz_medido": 0.0046,
+          "vx_dif_finitas": -0.0244,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.285,
+          "distancia_m": 0.515,
+          "h_sd": 0.0061,
+          "potencia_W": 14.6,
+          "CoT": null,
+          "inclinacion_max_deg": 2.0,
+          "veredicto": "camina, seguimiento pobre"
         },
         {
           "segment": 5,
@@ -137,14 +160,18 @@
             0.0,
             0.0
           ],
-          "vx_med": -0.0035,
-          "vy_med": 0.0063,
-          "wz_med": -0.0012,
-          "err_vx": 0.0035,
-          "err_wz": 0.0012,
-          "potencia_media_W": 0.68,
+          "vx_neto": -0.003,
+          "vy_neto": 0.0049,
+          "wz_medido": -0.0014,
+          "vx_dif_finitas": -0.0031,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.017,
+          "h_sd": 0.0011,
+          "potencia_W": 1.6,
           "CoT": null,
-          "inclinacion_max_deg": 1.2
+          "inclinacion_max_deg": 1.3,
+          "veredicto": "reposo (sin comando)"
         }
       ]
     },
@@ -161,14 +188,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0266,
-          "vy_med": -0.0012,
-          "wz_med": 0.0001,
-          "err_vx": 0.0266,
-          "err_wz": 0.0001,
-          "potencia_media_W": 6.87,
+          "vx_neto": 0.0287,
+          "vy_neto": -0.0009,
+          "wz_medido": -0.0004,
+          "vx_dif_finitas": 0.0295,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.086,
+          "h_sd": 0.008,
+          "potencia_W": 7.0,
           "CoT": null,
-          "inclinacion_max_deg": 6.6
+          "inclinacion_max_deg": 6.7,
+          "veredicto": "reposo (sin comando)"
         },
         {
           "segment": 1,
@@ -177,14 +208,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.1624,
-          "vy_med": 0.0004,
-          "wz_med": 0.006,
-          "err_vx": 0.1376,
-          "err_wz": 0.006,
-          "potencia_media_W": 12.26,
-          "CoT": 0.278,
-          "inclinacion_max_deg": 1.8
+          "vx_neto": 0.1606,
+          "vy_neto": 0.003,
+          "wz_medido": 0.0059,
+          "vx_dif_finitas": 0.1619,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.536,
+          "distancia_m": 0.966,
+          "h_sd": 0.0071,
+          "potencia_W": 12.3,
+          "CoT": 0.521,
+          "inclinacion_max_deg": 1.8,
+          "veredicto": "camina"
         },
         {
           "segment": 2,
@@ -193,14 +228,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.4429,
-          "vy_med": -0.0038,
-          "wz_med": 0.0018,
-          "err_vx": 0.1571,
-          "err_wz": 0.0018,
-          "potencia_media_W": 32.31,
-          "CoT": 0.366,
-          "inclinacion_max_deg": 2.9
+          "vx_neto": 0.4247,
+          "vy_neto": -0.0039,
+          "wz_medido": -0.0001,
+          "vx_dif_finitas": 0.4256,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.708,
+          "distancia_m": 2.555,
+          "h_sd": 0.0081,
+          "potencia_W": 33.2,
+          "CoT": 0.532,
+          "inclinacion_max_deg": 2.4,
+          "veredicto": "camina"
         },
         {
           "segment": 3,
@@ -209,14 +248,18 @@
             0.0,
             0.5
           ],
-          "vx_med": 0.0242,
-          "vy_med": -0.0035,
-          "wz_med": 0.2601,
-          "err_vx": 0.0242,
-          "err_wz": 0.2399,
-          "potencia_media_W": 12.63,
+          "vx_neto": 0.0209,
+          "vy_neto": 0.0011,
+          "wz_medido": 0.2607,
+          "vx_dif_finitas": 0.0247,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.521,
+          "distancia_m": 0.126,
+          "h_sd": 0.0068,
+          "potencia_W": 12.9,
           "CoT": null,
-          "inclinacion_max_deg": 4.0
+          "inclinacion_max_deg": 3.6,
+          "veredicto": "camina"
         },
         {
           "segment": 4,
@@ -225,14 +268,18 @@
             0.3,
             0.0
           ],
-          "vx_med": -0.0261,
-          "vy_med": 0.0885,
-          "wz_med": 0.0027,
-          "err_vx": 0.0261,
-          "err_wz": 0.0027,
-          "potencia_media_W": 14.21,
-          "CoT": 0.322,
-          "inclinacion_max_deg": 2.0
+          "vx_neto": -0.029,
+          "vy_neto": 0.087,
+          "wz_medido": 0.0057,
+          "vx_dif_finitas": -0.0274,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.306,
+          "distancia_m": 0.552,
+          "h_sd": 0.0062,
+          "potencia_W": 13.8,
+          "CoT": null,
+          "inclinacion_max_deg": 1.9,
+          "veredicto": "camina, seguimiento pobre"
         },
         {
           "segment": 5,
@@ -241,14 +288,18 @@
             0.0,
             0.0
           ],
-          "vx_med": -0.0035,
-          "vy_med": 0.0057,
-          "wz_med": -0.0011,
-          "err_vx": 0.0035,
-          "err_wz": 0.0011,
-          "potencia_media_W": 1.29,
+          "vx_neto": -0.0031,
+          "vy_neto": 0.005,
+          "wz_medido": -0.0011,
+          "vx_dif_finitas": -0.0037,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.018,
+          "h_sd": 0.0013,
+          "potencia_W": 1.7,
           "CoT": null,
-          "inclinacion_max_deg": 1.2
+          "inclinacion_max_deg": 1.3,
+          "veredicto": "reposo (sin comando)"
         }
       ]
     },
@@ -265,14 +316,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.0302,
-          "vy_med": -0.0012,
-          "wz_med": 0.0014,
-          "err_vx": 0.0302,
-          "err_wz": 0.0014,
-          "potencia_media_W": 7.17,
+          "vx_neto": 0.0303,
+          "vy_neto": -0.0014,
+          "wz_medido": 0.0044,
+          "vx_dif_finitas": 0.0318,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.091,
+          "h_sd": 0.0078,
+          "potencia_W": 7.2,
           "CoT": null,
-          "inclinacion_max_deg": 7.5
+          "inclinacion_max_deg": 6.9,
+          "veredicto": "reposo (sin comando)"
         },
         {
           "segment": 1,
@@ -281,14 +336,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.1617,
-          "vy_med": 0.0003,
-          "wz_med": 0.0059,
-          "err_vx": 0.1383,
-          "err_wz": 0.0059,
-          "potencia_media_W": 12.25,
-          "CoT": 0.278,
-          "inclinacion_max_deg": 1.9
+          "vx_neto": 0.1638,
+          "vy_neto": 0.0033,
+          "wz_medido": 0.0068,
+          "vx_dif_finitas": 0.1649,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.546,
+          "distancia_m": 0.986,
+          "h_sd": 0.007,
+          "potencia_W": 12.9,
+          "CoT": 0.535,
+          "inclinacion_max_deg": 2.0,
+          "veredicto": "camina"
         },
         {
           "segment": 2,
@@ -297,14 +356,18 @@
             0.0,
             0.0
           ],
-          "vx_med": 0.4398,
-          "vy_med": -0.005,
-          "wz_med": 0.0029,
-          "err_vx": 0.1602,
-          "err_wz": 0.0029,
-          "potencia_media_W": 31.56,
-          "CoT": 0.357,
-          "inclinacion_max_deg": 2.8
+          "vx_neto": 0.4445,
+          "vy_neto": 0.001,
+          "wz_medido": 0.0034,
+          "vx_dif_finitas": 0.4526,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.741,
+          "distancia_m": 2.673,
+          "h_sd": 0.008,
+          "potencia_W": 31.5,
+          "CoT": 0.481,
+          "inclinacion_max_deg": 2.6,
+          "veredicto": "camina"
         },
         {
           "segment": 3,
@@ -313,14 +376,18 @@
             0.0,
             0.5
           ],
-          "vx_med": 0.0223,
-          "vy_med": -0.005,
-          "wz_med": 0.2607,
-          "err_vx": 0.0223,
-          "err_wz": 0.2393,
-          "potencia_media_W": 12.32,
+          "vx_neto": 0.024,
+          "vy_neto": 0.0012,
+          "wz_medido": 0.2626,
+          "vx_dif_finitas": 0.0265,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.525,
+          "distancia_m": 0.145,
+          "h_sd": 0.0068,
+          "potencia_W": 12.7,
           "CoT": null,
-          "inclinacion_max_deg": 3.5
+          "inclinacion_max_deg": 3.9,
+          "veredicto": "camina"
         },
         {
           "segment": 4,
@@ -329,14 +396,18 @@
             0.3,
             0.0
           ],
-          "vx_med": -0.0303,
-          "vy_med": 0.0867,
-          "wz_med": 0.0037,
-          "err_vx": 0.0303,
-          "err_wz": 0.0037,
-          "potencia_media_W": 13.57,
-          "CoT": 0.307,
-          "inclinacion_max_deg": 2.0
+          "vx_neto": -0.0278,
+          "vy_neto": 0.0917,
+          "wz_medido": 0.004,
+          "vx_dif_finitas": -0.0267,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.319,
+          "distancia_m": 0.576,
+          "h_sd": 0.0061,
+          "potencia_W": 15.4,
+          "CoT": null,
+          "inclinacion_max_deg": 2.1,
+          "veredicto": "camina, seguimiento pobre"
         },
         {
           "segment": 5,
@@ -345,18 +416,21 @@
             0.0,
             0.0
           ],
-          "vx_med": -0.0246,
-          "vy_med": 0.0078,
-          "wz_med": -0.0289,
-          "err_vx": 0.0246,
-          "err_wz": 0.0289,
-          "potencia_media_W": 42.49,
+          "vx_neto": -0.0034,
+          "vy_neto": 0.0042,
+          "wz_medido": -0.0007,
+          "vx_dif_finitas": -0.0041,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.016,
+          "h_sd": 0.0014,
+          "potencia_W": 1.4,
           "CoT": null,
-          "inclinacion_max_deg": 5.1
+          "inclinacion_max_deg": 1.2,
+          "veredicto": "reposo (sin comando)"
         }
       ]
     }
   ],
-  "entorno": "unitree_mujoco simulate_python, domain 1, lo",
-  "limitacion": "los rollouts sucesivos parten del estado del anterior; para comparaciones estrictas relanzar el simulador y usar --rollouts 1"
+  "entorno": "unitree_mujoco simulate_python, domain 1, lo, escena plana"
 }
