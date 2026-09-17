@@ -1,0 +1,33 @@
+{
+  "run_id": "2026-09-17T1216_fae8fdd_t4_5m_seed3",
+  "usecase": "uc01_locomotion",
+  "tag": "t4_5m_seed3",
+  "created": "2026-09-17T12:16:44",
+  "git": {
+    "sha": "fae8fdde4e3ab084b3ec5177e098785e34130500",
+    "dirty": true
+  },
+  "training": {
+    "platform": "colab-t4-free",
+    "budget_minutes": 5.0,
+    "seed": 3,
+    "steps": null,
+    "framework": "unitree_rl_mjlab + mujoco_playground"
+  },
+  "policy": {
+    "format": "onnx",
+    "obs_dim": 47,
+    "action_dim": 12
+  },
+  "evaluation": {
+    "sim": {
+      "done": false,
+      "notes": ""
+    },
+    "real": {
+      "done": false,
+      "notes": ""
+    }
+  },
+  "notes": ""
+}
