@@ -188,7 +188,7 @@ def veredicto_segmento(cmd_speed: float, cmd_yaw: float, h_sd: float,
 
 def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess,
                 in_name: str, out_name: str, mass_kg: float,
-                fall_tilt: float, rows: list) -> dict:
+                fall_tilt: float, rows: list, settle_s: float = 2.0) -> dict:
     kp_pol, kd_pol = ct.policy_gains_motor(c)
     offset_motor = ct.policy_defaults_motor(c)
     scale = np.asarray(c["policy"]["action"]["scale"], dtype=np.float32)
@@ -220,6 +220,15 @@ def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess,
         t_seg0 = time.monotonic()
         prev_pos, prev_t = pos0, t_seg0
 
+        # Ventana de REGIMEN: se descartan los primeros settle_s segundos,
+        # durante los que el robot acelera desde parado. Sin esto, el promedio
+        # sobre el segmento completo infravalora a TODAS las politicas por
+        # igual: el deficit resulta constante en valor absoluto en vez de
+        # proporcional, que es la firma de un transitorio, no de un error de
+        # ganancia de la politica.
+        pos_s, yaw_s, t_s = None, None, None
+        wz_st, pow_st, h_st = [], [], []
+
         while time.monotonic() - t_seg0 < secs:
             try:
                 ll.check_safety()
@@ -247,6 +256,16 @@ def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess,
             power.append(float(np.sum(np.abs(tau * dq))))
             h = ll.height_proxy()
             heights.append(h)
+
+            elapsed = time.monotonic() - t_seg0
+            if elapsed >= settle_s:
+                if pos_s is None:
+                    pos_s, _ = gt.get()
+                    yaw_s = yaw_from_quat(ll.quaternion())
+                    t_s = time.monotonic()
+                wz_st.append(float(ll.gyro()[2]))
+                pow_st.append(power[-1])
+                h_st.append(h)
             tilt = ll.tilt_rad()
             tilts.append(tilt)
             if tilt > fall_tilt:
@@ -265,14 +284,26 @@ def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess,
             time.sleep(max(0.0, next_tick - time.monotonic()))
 
         # --- medida robusta: desplazamiento NETO / duracion ---
-        dur = max(time.monotonic() - t_seg0, 1e-6)
+        # Si hubo ventana de regimen, se mide solo en ella; si no, el segmento
+        # completo (segmentos cortos, o --settle-s 0).
         pos1, _ = gt.get()
-        d_body = to_body(pos1 - pos0, yaw0)
+        t_fin = time.monotonic()
+        if pos_s is not None and (t_fin - t_s) > 0.5:
+            dur = t_fin - t_s
+            d_body = to_body(pos1 - pos_s, yaw_s)
+            en_regimen = True
+        else:
+            dur = max(t_fin - t_seg0, 1e-6)
+            d_body = to_body(pos1 - pos0, yaw0)
+            en_regimen = False
         net_vx, net_vy = d_body[0] / dur, d_body[1] / dur
 
-        h_sd = st.pstdev(heights) if len(heights) > 1 else 0.0
-        p_mean = st.mean(power) if power else 0.0
-        wz_mean = st.mean(wz_meas) if wz_meas else 0.0
+        serie_h = h_st if en_regimen and len(h_st) > 1 else heights
+        serie_p = pow_st if en_regimen and pow_st else power
+        serie_wz = wz_st if en_regimen and wz_st else wz_meas
+        h_sd = st.pstdev(serie_h) if len(serie_h) > 1 else 0.0
+        p_mean = st.mean(serie_p) if serie_p else 0.0
+        wz_mean = st.mean(serie_wz) if serie_wz else 0.0
         speed_cmd = math.hypot(vx, vy)
 
         if speed_cmd > 0.05:
@@ -303,6 +334,8 @@ def run_rollout(idx: int, ll: LowLevel, gt: GroundTruth, c: dict, sess,
             "CoT": round(cot, 3) if cot else None,
             "inclinacion_max_deg": round(math.degrees(max(tilts)), 1) if tilts else None,
             "veredicto": v,
+            "medido_en_regimen": bool(en_regimen),
+            "ventana_s": round(dur, 2),
         })
         if fell:
             break
@@ -342,6 +375,10 @@ def main() -> int:
     p.add_argument("--publish-hz", type=float, default=200.0)
     p.add_argument("--mass-kg", type=float, default=None)
     p.add_argument("--fall-tilt-deg", type=float, default=50.0)
+    p.add_argument("--settle-s", type=float, default=2.0,
+                   help="segundos iniciales de cada segmento que se DESCARTAN "
+                        "de la medida: el robot arranca parado y acelerar "
+                        "penaliza el promedio. 0 mide el segmento entero.")
     p.add_argument("--out", default=None)
     args = p.parse_args()
 
@@ -367,7 +404,9 @@ def main() -> int:
     print(f"masa     : {mass} kg | rollouts: {args.rollouts}")
     print(f"secuencia: {len(SCHEDULE)} segmentos, "
           f"{sum(s[3] for s in SCHEDULE):.0f} s por rollout")
-    print(f"umbral de marcha: h_sd >= {H_SD_CAMINA}, potencia >= {P_MIN_CAMINA} W\n")
+    print(f"umbral de marcha: h_sd >= {H_SD_CAMINA}, potencia >= {P_MIN_CAMINA} W")
+    print(f"ventana de regimen: se descartan los primeros {args.settle_s} s "
+          f"de cada segmento\n")
 
     ll = LowLevel(c, mode="sim")
     ll.publish_dt = 1.0 / args.publish_hz
@@ -388,7 +427,7 @@ def main() -> int:
 
         for i in range(1, args.rollouts + 1):
             r = run_rollout(i, ll, gt, c, sess, in_name, out_name, mass,
-                            math.radians(args.fall_tilt_deg), rows)
+                            math.radians(args.fall_tilt_deg), rows, args.settle_s)
             results.append(r)
             if r.get("segments"):
                 tabla(r["segments"])
@@ -465,6 +504,7 @@ def main() -> int:
             "caidas": caidas,
             "camina": camina,
             "umbral_h_sd": H_SD_CAMINA,
+            "settle_s": args.settle_s,
             "schedule": [list(s) for s in SCHEDULE],
             "resultados": results,
             "entorno": "unitree_mujoco simulate_python, domain 1, lo, escena plana",
