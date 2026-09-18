@@ -49,7 +49,11 @@ sin instalar ROS, Python ni CUDA en tu máquina.
 1. Ningún parámetro de control se cablea: todo en `usecases/*/configs/`
 2. Un experimento sin `manifest.json` no existe
 3. Las figuras se generan con un comando, nunca se editan a mano
-4. Pesos y rosbags por DVC, nunca por git
+4. Los checkpoints de ENTRENAMIENTO y los rosbags van por DVC, nunca por
+   git. Excepcion: la politica de referencia
+   (`experiments/uc01_locomotion/legacy_wsl2/checkpoints/policy.onnx`, 748 KB)
+   si va en git, porque es la unica que hace falta para que el simulador
+   funcione nada mas clonar
 5. Antes de tocar el robot físico se lee `docs/SAFETY.md`. Sin excepciones.
 
 ## Repositorios relacionados
