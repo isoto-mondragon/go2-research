@@ -50,3 +50,18 @@ papers/**/*.synctex.gz
 # --- Sistema ---
 .DS_Store
 audit_*.txt
+
+# --- Politica de referencia ---
+# EXCEPCION deliberada a la regla "los pesos van por DVC".
+#
+# Esta politica (748 KB) es la UNICA que hace falta para que el simulador haga
+# algo nada mas clonar. Con DVC habria que configurar un remote y autenticarse
+# antes de empezar, y eso rompe la guia rapida.
+#
+# La regla sigue en pie para los checkpoints de ENTRENAMIENTO, que pesan
+# cientos de MB: esos van por DVC.
+#
+# Git NO desciende a un directorio excluido, asi que hay que reabrir la ruta
+# nivel a nivel antes de poder reincluir el fichero.
+!experiments/uc01_locomotion/legacy_wsl2/checkpoints/
+!experiments/uc01_locomotion/legacy_wsl2/checkpoints/policy.onnx
