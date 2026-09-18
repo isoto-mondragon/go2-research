@@ -28,8 +28,6 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile
-      additional_contexts:
-        repo: .
     image: go2-workspace:1.0
     container_name: go2-sim
     environment:
@@ -83,7 +81,11 @@ services:
       GO2_MODE: real
       GO2_GUI: none
       GO2_DOMAIN: 0
-      GO2_IFACE: ${GO2_IFACE:?define GO2_IFACE en .env o en la linea de comandos}
+      # Vacia por defecto. El entrypoint aborta con un mensaje claro y
+      # lista las interfaces disponibles si se arranca en modo real sin
+      # definirla. No se valida aqui porque compose interpola todos los
+      # servicios aunque solo construyas uno.
+      GO2_IFACE: ${GO2_IFACE:-}
     volumes:
       - .:/workspace
     working_dir: /workspace

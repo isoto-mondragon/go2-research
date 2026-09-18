@@ -106,11 +106,21 @@ RUN cd ${GO2_DEPS}/unitree_ros2/cyclonedds_ws \
 # ---------------------------------------------------------------------------
 # 5. Unitree SDK2 (C++ y Python)
 # ---------------------------------------------------------------------------
+# El repo YA NO trae install.sh: la guia antigua de Unitree lo mencionaba y
+# desaparecio. La instalacion actual es cmake con CMAKE_INSTALL_PREFIX.
+# Dependencias segun el README del SDK: yaml-cpp, eigen3, boost y fmt.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libyaml-cpp-dev libeigen3-dev libboost-all-dev libfmt-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN cd ${GO2_DEPS} \
     && git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2.git \
-    && cd unitree_sdk2 && ./install.sh \
+    && cd unitree_sdk2 \
     && mkdir -p build && cd build \
-    && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j"$(nproc)"
+    && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
+    && make -j"$(nproc)" \
+    && make install \
+    && ls -la /opt/unitree_robotics/lib
 
 RUN cd ${GO2_DEPS} \
     && git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2_python.git \
@@ -128,7 +138,12 @@ RUN pip3 install --no-cache-dir --upgrade pip wheel \
     && pip3 install --no-cache-dir \
         "numpy>=1.26,<3" "scipy>=1.11" "matplotlib>=3.8" "pandas>=2.1" \
         "pyyaml>=6.0" mujoco onnxruntime ultralytics \
-        opencv-python-headless dvc
+        opencv-python-headless dvc \
+        pygame
+
+# pygame lo importa unitree_sdk2py_bridge.py en la cabecera del fichero, aunque
+# solo lo use cuando USE_JOYSTICK=1. Sin el, el simulador no arranca ni con el
+# joystick desactivado.
 
 # ---------------------------------------------------------------------------
 # 7. unitree_mujoco, ya configurado
