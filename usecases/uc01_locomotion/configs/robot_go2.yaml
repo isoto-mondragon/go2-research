@@ -193,6 +193,10 @@ dds:
     interface: "lo"
   real:
     domain_id: 0
+    # Valor por defecto. Lo anula la variable de entorno GO2_IFACE, que es
+    # lo que usa el contenedor. La interfaz depende de la MAQUINA, no del
+    # experimento: en el ProBook de desarrollo es enp3s0, en otra puede ser
+    # eno1, eth0 o enx<mac> si se usa un adaptador USB.
     interface: "enp3s0"
     robot_ip: "192.168.123.161"
     host_ip: "192.168.123.222"

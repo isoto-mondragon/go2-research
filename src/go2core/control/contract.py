@@ -79,6 +79,20 @@ def load_contract(path: str | Path) -> dict:
     if f_.get("gains_order") != "motor" or f_.get("poses_order") != "motor":
         fail("fsm.gains_order y fsm.poses_order deben ser 'motor'")
 
+    # --- entorno por encima del fichero ---
+    # La interfaz de red y el domain id dependen de la MAQUINA, no del
+    # experimento. Tenerlos escritos en el contrato ataba el proyecto a un
+    # ordenador concreto (enp3s0). Las variables GO2_IFACE y GO2_DOMAIN mandan.
+    from go2core import paths as _p
+    for modo in ("sim", "real"):
+        if modo in c.get("dds", {}):
+            iface = _p.iface() if modo == _p.mode() else None
+            if iface:
+                c["dds"][modo]["interface"] = iface
+            dom = _p.domain() if modo == _p.mode() else None
+            if dom is not None:
+                c["dds"][modo]["domain_id"] = dom
+
     # --- observaciones ---
     total = sum(t["dim"] for t in c.get("obs", {}).get("terms", []))
     declared = c.get("obs", {}).get("total_dim")

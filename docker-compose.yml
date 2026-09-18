@@ -1,0 +1,118 @@
+# docker-compose.yml
+#
+# Tres perfiles, un unico repositorio montado. La imagen trae las dependencias;
+# el codigo va montado como volumen, asi se edita sin reconstruir nada.
+#
+#   sim   simulador con el escritorio en el navegador. Cualquier sistema
+#         operativo, cualquier tarjeta grafica. Es el que usaran los alumnos.
+#   real  robot fisico por Ethernet. SOLO LINUX: necesita network_mode host,
+#         que en Docker Desktop de Windows y macOS no funciona de verdad.
+#         No es una limitacion nuestra, es del transporte DDS.
+#   dev   shell con la red del anfitrion y GUI por X11. Para trabajar en Linux.
+#
+# Uso:
+#   docker compose --profile sim  up                  -> simulador + noVNC
+#   docker compose --profile sim  run --rm shell      -> terminal
+#   docker compose --profile real run --rm real       -> robot fisico
+#
+# Construir la imagen la primera vez:
+#   docker compose build
+
+services:
+
+  # -------------------------------------------------------------------------
+  # SIMULADOR (alumnos, cualquier SO)
+  # -------------------------------------------------------------------------
+  sim:
+    profiles: ["sim"]
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+      additional_contexts:
+        repo: .
+    image: go2-workspace:1.0
+    container_name: go2-sim
+    environment:
+      GO2_MODE: sim
+      GO2_GUI: novnc
+      GO2_DOMAIN: 1
+      GO2_IFACE: lo
+    ports:
+      - "6080:6080"     # noVNC: abrir http://localhost:6080/vnc.html
+    volumes:
+      - .:/workspace
+    working_dir: /opt/go2/unitree_mujoco/simulate_python
+    command: python3 unitree_mujoco.py
+    stdin_open: true
+    tty: true
+    # El simulador y el control corren en el MISMO contenedor y hablan por
+    # loopback. Dos contenedores distintos no se verian: "lo" no se comparte.
+
+  # -------------------------------------------------------------------------
+  # TERMINAL sobre el mismo entorno de simulacion
+  # -------------------------------------------------------------------------
+  # Se conecta a la red del contenedor `sim` para compartir su loopback, que es
+  # por donde va el DDS de la simulacion.
+  shell:
+    profiles: ["sim"]
+    image: go2-workspace:1.0
+    container_name: go2-shell
+    depends_on: [sim]
+    network_mode: "service:sim"
+    environment:
+      GO2_MODE: sim
+      GO2_GUI: none
+      GO2_DOMAIN: 1
+      GO2_IFACE: lo
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: bash
+    stdin_open: true
+    tty: true
+
+  # -------------------------------------------------------------------------
+  # ROBOT FISICO (solo Linux)
+  # -------------------------------------------------------------------------
+  real:
+    profiles: ["real"]
+    image: go2-workspace:1.0
+    container_name: go2-real
+    network_mode: host          # imprescindible para el DDS por Ethernet
+    environment:
+      GO2_MODE: real
+      GO2_GUI: none
+      GO2_DOMAIN: 0
+      GO2_IFACE: ${GO2_IFACE:?define GO2_IFACE en .env o en la linea de comandos}
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: bash
+    stdin_open: true
+    tty: true
+    # Antes de arrancar esto, en el ANFITRION:
+    #   ./env/go2_net.sh up      (IP estatica 192.168.123.222)
+    # El contenedor usa la red del anfitrion, asi que la configuracion de red
+    # se hace fuera.
+
+  # -------------------------------------------------------------------------
+  # DESARROLLO (Linux, GUI nativa)
+  # -------------------------------------------------------------------------
+  dev:
+    profiles: ["dev"]
+    image: go2-workspace:1.0
+    container_name: go2-dev
+    network_mode: host
+    environment:
+      GO2_MODE: ${GO2_MODE:-sim}
+      GO2_GUI: x11
+      DISPLAY: ${DISPLAY:-:0}
+    volumes:
+      - .:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+    working_dir: /workspace
+    command: bash
+    stdin_open: true
+    tty: true
+    # En el anfitrion, una vez por sesion:  xhost +local:docker
