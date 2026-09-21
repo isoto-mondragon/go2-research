@@ -28,10 +28,9 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile
-    # TODO: cuando la imagen se publique, cambiar a
-    #   image: ghcr.io/isoto-mondragon/go2-workspace:1.0
-    # y entonces `docker compose pull` funcionara sin construir nada.
-    image: go2-workspace:1.0
+    # Imagen publicada: `docker compose pull` la baja sin construir nada.
+    # Para construirla en local:  docker compose --profile sim build
+    image: ghcr.io/isoto-mondragon/go2-workspace:latest
     container_name: go2-sim
     environment:
       GO2_MODE: sim
@@ -58,7 +57,7 @@ services:
   # por donde va el DDS de la simulacion.
   shell:
     profiles: ["sim"]
-    image: go2-workspace:1.0
+    image: ghcr.io/isoto-mondragon/go2-workspace:latest
     container_name: go2-shell
     depends_on: [sim]
     network_mode: "service:sim"
@@ -79,7 +78,7 @@ services:
   # -------------------------------------------------------------------------
   real:
     profiles: ["real"]
-    image: go2-workspace:1.0
+    image: ghcr.io/isoto-mondragon/go2-workspace:latest
     container_name: go2-real
     network_mode: host          # imprescindible para el DDS por Ethernet
     environment:
@@ -107,7 +106,7 @@ services:
   # -------------------------------------------------------------------------
   dev:
     profiles: ["dev"]
-    image: go2-workspace:1.0
+    image: ghcr.io/isoto-mondragon/go2-workspace:latest
     container_name: go2-dev
     network_mode: host
     environment:
