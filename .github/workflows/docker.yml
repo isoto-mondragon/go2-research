@@ -1,0 +1,144 @@
+# .github/workflows/docker.yml
+#
+# Construye la imagen y la publica en GitHub Container Registry.
+#
+# POR QUE
+# -------
+# Sin esto, cada persona del grupo reconstruye 20-40 minutos en su portatil. Con
+# la imagen publicada, `docker compose pull` tarda unos 5 minutos y no compila
+# nada. Es la diferencia entre "sigue estas instrucciones" y "ejecuta esto".
+#
+# Ademas se construye en los servidores de GitHub, no en tu maquina, y queda
+# constancia publica de que la imagen se puede reconstruir desde el codigo.
+#
+# CUANDO SE EJECUTA
+#   - al cambiar el Dockerfile, el entrypoint o la escena
+#   - al publicar un tag v*
+#   - a mano, desde la pestana Actions
+#
+# En pull requests construye pero NO publica: comprueba que sigue compilando sin
+# ensuciar el registro.
+#
+# IMAGEN RESULTANTE
+#   ghcr.io/<usuario>/go2-workspace:latest
+#   ghcr.io/<usuario>/go2-workspace:1.0        (en tags v1.0)
+#   ghcr.io/<usuario>/go2-workspace:<sha>
+#
+# HACERLA PUBLICA (una sola vez, tras la primera publicacion)
+#   GitHub > tu perfil > Packages > go2-workspace > Package settings
+#   > Change visibility > Public
+# Sin eso, los usuarios necesitarian `docker login ghcr.io`.
+
+name: Construir y publicar imagen Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/**'
+      - '.github/workflows/docker.yml'
+      - 'usecases/uc01_locomotion/configs/scene_flat.xml'
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'docker/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/go2-workspace
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      # El Dockerfile hace COPY scene_flat.xml desde su propio contexto
+      # (./docker). La escena vive en el repositorio, asi que se copia antes de
+      # construir en vez de duplicarla en git.
+      - name: Preparar el contexto de construccion
+        run: |
+          cp usecases/uc01_locomotion/configs/scene_flat.xml docker/scene_flat.xml
+          ls -la docker/
+
+      - name: Liberar espacio en el runner
+        # La imagen ronda los 6.5 GB y el runner viene con herramientas que no
+        # se usan. Sin esto la construccion puede quedarse sin disco.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
+          df -h /
+
+      - name: Configurar Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Autenticarse en GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calcular etiquetas
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      - name: Construir y publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Cache entre ejecuciones: sin el, cada build compila CycloneDDS y el
+          # SDK2 desde cero (unos 40 min).
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Comprobar que la imagen funciona
+        if: github.event_name != 'pull_request'
+        run: |
+          IMG=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+          echo "comprobando $IMG"
+          docker pull "$IMG"
+          echo "--- versiones fijadas ---"
+          docker run --rm --entrypoint cat "$IMG" /opt/go2/VERSIONS.txt
+          echo "--- importaciones ---"
+          docker run --rm --entrypoint bash "$IMG" -lc '
+            source /opt/ros/humble/setup.bash
+            source /opt/go2/unitree_ros2/cyclonedds_ws/install/setup.bash
+            python3 -c "import unitree_sdk2py, mujoco, onnxruntime, numpy, pygame; print(\"imports OK\")"
+            test -f /opt/go2/unitree_mujoco/unitree_robots/go2/scene_flat.xml && echo "escena plana OK"
+            grep -q "USE_JOYSTICK = 0" /opt/go2/unitree_mujoco/simulate_python/config.py && echo "config OK"
+          '
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "## Imagen publicada"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo "### Uso"
+            echo '```bash'
+            echo "docker compose --profile sim pull"
+            echo "docker compose --profile sim up"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
