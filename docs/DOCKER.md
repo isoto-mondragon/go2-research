@@ -38,3 +38,35 @@ usar siempre `GO2_GUI=none docker compose --profile sim up`.
 El cliente VNC nativo en el puerto 5900 no mejora de forma apreciable frente al
 navegador en este equipo: el cuello es el renderizado por software, no la
 transmision.
+
+## Imagen publicada (2026-09-21)
+
+`ghcr.io/isoto-mondragon/go2-workspace:latest`, publica, unos 6.4 GB.
+
+Instalacion para un usuario nuevo: `git clone`, `docker compose --profile sim
+pull`, `docker compose --profile sim up`. Unos 5 minutos en vez de los 20-40
+que costaba construirla.
+
+Se reconstruye automaticamente con GitHub Actions al cambiar `docker/`. El
+workflow comprueba, sobre la imagen ya publicada, que los imports funcionan y
+que la configuracion del simulador es la correcta.
+
+### Commits fijados
+
+Los seis repositorios de Unitree estan anclados. Auditar cualquier contenedor:
+
+    docker run --rm --entrypoint cat \
+        ghcr.io/isoto-mondragon/go2-workspace:latest /opt/go2/VERSIONS.txt
+
+Combinacion validada el 2026-09-21:
+
+    unitree_ros2         668d1ec5
+    unitree_sdk2         c7538298
+    unitree_sdk2_python  65691c8a
+    unitree_mujoco       1eb6642e
+    rmw_cyclonedds       e370e09c
+    cyclonedds           5041f356
+
+Sin fijarlos, dos personas que construyan en dias distintos obtienen imagenes
+distintas. No es teorico: tres cambios silenciosos del upstream nos rompieron
+la construccion en cuestion de semanas.
