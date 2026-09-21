@@ -28,6 +28,9 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile
+    # TODO: cuando la imagen se publique, cambiar a
+    #   image: ghcr.io/isoto-mondragon/go2-workspace:1.0
+    # y entonces `docker compose pull` funcionara sin construir nada.
     image: go2-workspace:1.0
     container_name: go2-sim
     environment:
