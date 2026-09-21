@@ -32,11 +32,13 @@ services:
     container_name: go2-sim
     environment:
       GO2_MODE: sim
-      GO2_GUI: novnc
+      GO2_GUI: ${GO2_GUI:-novnc}
+      GO2_RES: ${GO2_RES:-1280x800x24}
       GO2_DOMAIN: 1
       GO2_IFACE: lo
     ports:
-      - "6080:6080"     # noVNC: abrir http://localhost:6080/vnc.html
+      - "6080:6080"     # noVNC: http://localhost:6080/vnc.html
+      - "5900:5900"     # VNC nativo: bastante mas rapido que el navegador
     volumes:
       - .:/workspace
     working_dir: /opt/go2/unitree_mujoco/simulate_python
