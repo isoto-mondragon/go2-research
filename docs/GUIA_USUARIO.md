@@ -228,22 +228,26 @@ docker run --rm hello-world
 Debe imprimir `Hello from Docker!`. Si dice `permission denied`, en Linux falta
 reiniciar tras el `usermod`.
 
-### Descargar el proyecto
+### Descargar el proyecto y la imagen
 
 ```bash
 git clone https://github.com/isoto-mondragon/go2-research.git
 cd go2-research
+docker compose --profile sim pull
 ```
 
-### Construir la imagen
+Unos **5 minutos**: se descarga la imagen ya construida, no se compila nada.
+
+<details>
+<summary>Construirla tú mismo (no hace falta)</summary>
 
 ```bash
 docker compose --profile sim build
 ```
 
-**20 a 40 minutos.** Compila ROS 2, CycloneDDS y el SDK de Unitree desde el
-código fuente. Hay un tramo de 5-10 minutos en el que apenas imprime nada
-mientras compila CycloneDDS: es normal, no está colgado.
+20 a 40 minutos: compila ROS 2, CycloneDDS y el SDK de Unitree desde el código
+fuente. Solo es necesario si modificas el `Dockerfile`.
+</details>
 
 ---
 
