@@ -41,6 +41,9 @@ services:
     ports:
       - "6080:6080"     # noVNC: http://localhost:6080/vnc.html
       - "5900:5900"     # VNC nativo: bastante mas rapido que el navegador
+    # Docker limita /dev/shm a 64 MB. MuJoCo y el servidor X lo agradecen, y
+    # evita fallos de memoria compartida al renderizar.
+    shm_size: "512m"
     volumes:
       - .:/workspace
     working_dir: /opt/go2/unitree_mujoco/simulate_python
@@ -63,7 +66,11 @@ services:
     network_mode: "service:sim"
     environment:
       GO2_MODE: sim
+      # `none` sin servidor X propio: este contenedor no dibuja nada y comparte
+      # namespace con `sim`. Si arrancase su propio Xvfb en :99 impediria que
+      # `sim` levante el suyo, y el visor dejaria de funcionar.
       GO2_GUI: none
+      GO2_NO_XVFB: "1"
       GO2_DOMAIN: 1
       GO2_IFACE: lo
     volumes:

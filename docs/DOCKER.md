@@ -70,3 +70,58 @@ Combinacion validada el 2026-09-21:
 Sin fijarlos, dos personas que construyan en dias distintos obtienen imagenes
 distintas. No es teorico: tres cambios silenciosos del upstream nos rompieron
 la construccion en cuestion de semanas.
+
+## Rendimiento del visor: conclusion final (2026-09-21)
+
+### Tres configuraciones, medidas
+
+| configuracion | renderiza | CPU del contenedor | fluidez |
+|---|---|---|---|
+| `sim` (noVNC) | llvmpipe, en CPU | 406 %, saturada | pesado |
+| `dev` (X11 nativo) | GPU del anfitrion | libre | **fluido** |
+| `sim --headless` | nada | minima | sin visor |
+
+### El cuello era la CPU
+
+No el renderizado (MuJoCo da 188-216 FPS), ni la transmision (identico con y
+sin cliente VNC), ni la tasa de refresco. Era la CPU saturada haciendo
+renderizado 3D por software a la vez que fisica a 200 Hz (`SIMULATE_DT=0.005`).
+
+El perfil `dev` lo resuelve sacando el renderizado a la GPU del anfitrion.
+
+### Recomendacion por sistema
+
+| | |
+|---|---|
+| **Linux, mirando el simulador** | `./go2 dev shell` — GPU real, sin VNC |
+| **Windows o macOS** | `docker compose --profile sim up` — noVNC, ira pesado |
+| **Cualquiera, experimentando** | `./go2 sim headless` — sin dibujar nada |
+
+En Windows y macOS no hay alternativa: Docker Desktop no puede pasar la GPU
+para OpenGL. Es una limitacion del sistema, no del proyecto.
+
+### Callejones sin salida, para que nadie los repita
+
+- Compartir `/dev/dri` con el perfil `sim`: inutil. Ni Xvfb ni Xvnc soportan
+  DRI, asi que mesa cae a llvmpipe. `Accelerated: no`, y 1067 FPS con el
+  dispositivo frente a 1166 sin el.
+- Cliente VNC nativo en el 5900: sin mejora apreciable.
+- Bajar la resolucion: marginal.
+- Subir VIEWER_DT de 10 a 50 fps: mejora algo, pero con la CPU saturada
+  subir a 60 no aporta nada.
+
+### Lo que si aporto
+
+- **Xvnc en lugar de Xvfb + x11vnc**: x11vnc sondea el framebuffer, Xvnc dibuja
+  directamente en el.
+- **`-noshm`** con x11vnc: Docker aisla los segmentos IPC y el ShmAttach falla
+  con BadAccess, matando el proceso en silencio.
+- **`GO2_NO_XVFB=1` en `shell`**: comparte namespace con `sim`; si arranca su
+  propio servidor X en `:99`, impide que `sim` levante el suyo.
+- **`VIEWER_DT = 0.02`** en lugar de 0.1.
+
+### Leccion
+
+Se optimizo durante varias sesiones sin medir donde estaba el cuello. Las dos
+medidas que lo resolvieron (FPS de MuJoCo, y `docker stats`) tardaron dos
+minutos cada una.

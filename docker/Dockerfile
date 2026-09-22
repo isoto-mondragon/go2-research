@@ -75,7 +75,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # mesa da OpenGL por software (llvmpipe). Mas lento que una GPU pero funciona
 # en cualquier maquina, que es justo el requisito.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        xvfb x11vnc novnc websockify x11-utils \
+        tigervnc-standalone-server tigervnc-common \
+        xvfb x11vnc novnc websockify x11-utils mesa-utils \
         libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa \
         libglfw3 libxinerama1 libxcursor1 libxi6 libxrandr2 \
         fonts-dejavu-core \
@@ -184,7 +185,12 @@ RUN pip3 install --no-cache-dir --upgrade pip wheel \
 #                     publicando estado congelado y parece un fallo de control
 #   DOMAIN_ID = 1     separa el simulador del robot real (domain 0)
 #   INTERFACE = "lo"  el simulador habla por loopback
-#   VIEWER_DT = 0.1   10 fps; el visor va por software y roba CPU al control
+#   VIEWER_DT = 0.02  50 fps. MEDIDO: MuJoCo renderiza esta escena a 188 FPS
+#                     (5.3 ms por fotograma) dentro del contenedor, asi que
+#                     50 fps cuestan el 26 % de UN nucleo. El bucle de control
+#                     usa 0.84 ms de sus 20 ms, o sea que hay CPU de sobra.
+#                     Bajarlo a 0.1 (10 fps) hacia que el visor pareciera lento
+#                     cuando el cuello no era el renderizado sino este limite.
 #   scene_flat.xml    la escena original trae 8 escalones y el robot choca
 RUN cd ${GO2_DEPS} \
     && git clone https://github.com/unitreerobotics/unitree_mujoco.git \
@@ -194,7 +200,7 @@ RUN cd ${GO2_DEPS} \
     && sed -i 's|^USE_JOYSTICK *=.*|USE_JOYSTICK = 0|' config.py \
     && sed -i 's|^DOMAIN_ID *=.*|DOMAIN_ID = 1|' config.py \
     && sed -i 's|^INTERFACE *=.*|INTERFACE = "lo"|' config.py \
-    && sed -i 's|^VIEWER_DT *=.*|VIEWER_DT = 0.1|' config.py \
+    && sed -i 's|^VIEWER_DT *=.*|VIEWER_DT = 0.02|' config.py \
     && grep -E '^(ROBOT|ROBOT_SCENE|DOMAIN_ID|INTERFACE|USE_JOYSTICK|VIEWER_DT)' config.py
 
 # La escena plana se copia desde el repositorio en tiempo de construccion.

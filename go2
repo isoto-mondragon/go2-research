@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# go2 — envoltorio de docker compose para el entorno del Unitree Go2
+#
+# Detecta el sistema y la GPU y elige la mejor configuracion disponible, para
+# que nadie tenga que acordarse de anadir ficheros de override.
+#
+# USO
+#   ./go2 sim up            simulador con la GUI en el navegador
+#   ./go2 sim shell         terminal dentro del contenedor
+#   ./go2 sim headless      sin visor: lo mas rapido para experimentos
+#   ./go2 sim down          parar
+#   ./go2 real shell        robot fisico (solo Linux)
+#   ./go2 dev shell         desarrollo con GUI nativa (solo Linux)
+#   ./go2 pull              descargar la imagen publicada
+#   ./go2 build             construirla en local
+#   ./go2 info              que va a usar y por que
+#
+# Windows y macOS: usar `docker compose` directamente, o ejecutar esto desde
+# Git Bash o WSL.
+
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+FICHEROS=(-f docker-compose.yml)
+ACEL="software"
+MOTIVO="sistema sin soporte de GPU en contenedor"
+
+if [[ "$(uname -s)" == "Linux" ]]; then
+    if compgen -G "/dev/dri/renderD*" >/dev/null 2>&1; then
+        FICHEROS+=(-f docker-compose.linux.yml)
+        ACEL="hardware"
+        MOTIVO="/dev/dri presente"
+    else
+        MOTIVO="Linux sin /dev/dri (sin GPU accesible)"
+    fi
+fi
+
+info() {
+    echo "sistema      : $(uname -s) $(uname -m)"
+    echo "aceleracion  : ${ACEL} (${MOTIVO})"
+    echo "compose      : ${FICHEROS[*]}"
+    if [[ "${ACEL}" == "hardware" ]]; then
+        echo "dispositivos :"
+        ls /dev/dri/ 2>/dev/null | sed 's/^/  /'
+    else
+        echo
+        echo "El visor ira por software. No afecta a la fisica ni al control."
+        echo "Para experimentos:  ./go2 sim headless"
+    fi
+}
+
+PERFIL="${1:-}"
+ACCION="${2:-}"
+
+case "${PERFIL}" in
+    info|"")
+        info
+        [[ -z "${PERFIL}" ]] && { echo; sed -n '3,25p' "$0"; }
+        exit 0
+        ;;
+    pull)
+        exec docker compose "${FICHEROS[@]}" --profile sim pull
+        ;;
+    build)
+        exec docker compose "${FICHEROS[@]}" --profile sim build
+        ;;
+    sim|real|dev) ;;
+    *)
+        echo "perfil desconocido: ${PERFIL}"
+        sed -n '3,25p' "$0"
+        exit 1
+        ;;
+esac
+
+if [[ "${PERFIL}" != "sim" && "$(uname -s)" != "Linux" ]]; then
+    echo "El perfil '${PERFIL}' necesita la red del anfitrion y solo funciona"
+    echo "en Linux. En Windows y macOS usa el perfil 'sim'."
+    exit 1
+fi
+
+case "${ACCION}" in
+    up)
+        info; echo
+        exec docker compose "${FICHEROS[@]}" --profile "${PERFIL}" up
+        ;;
+    headless)
+        info; echo
+        echo "sin visor: no se dibuja ni se transmite nada"
+        echo
+        GO2_GUI=none exec docker compose "${FICHEROS[@]}" --profile "${PERFIL}" up
+        ;;
+    shell)
+        # El servicio `shell` SOLO existe en el perfil sim. En `dev` y `real` la
+        # terminal es el propio servicio del perfil: pedir `shell` ahi arrancaba
+        # el servicio equivocado, con GUI=none y render por software, y parecia
+        # que X11 no funcionaba.
+        case "${PERFIL}" in
+            sim)
+                if docker compose "${FICHEROS[@]}" ps --status running 2>/dev/null | grep -q go2-sim; then
+                    exec docker compose "${FICHEROS[@]}" --profile sim exec shell bash
+                else
+                    exec docker compose "${FICHEROS[@]}" --profile sim run --rm shell bash
+                fi
+                ;;
+            dev)
+                # X11 del anfitrion: hace falta autorizar al contenedor.
+                if command -v xhost >/dev/null 2>&1; then
+                    xhost +local:docker >/dev/null 2>&1 || true
+                    trap 'xhost -local:docker >/dev/null 2>&1 || true' EXIT
+                fi
+                exec docker compose "${FICHEROS[@]}" --profile dev run --rm dev bash
+                ;;
+            real)
+                exec docker compose "${FICHEROS[@]}" --profile real run --rm real bash
+                ;;
+        esac
+        ;;
+    down)
+        exec docker compose "${FICHEROS[@]}" --profile "${PERFIL}" down
+        ;;
+    *)
+        # Cualquier otra cosa se pasa tal cual a docker compose
+        shift || true
+        exec docker compose "${FICHEROS[@]}" --profile "${PERFIL}" "$@"
+        ;;
+esac

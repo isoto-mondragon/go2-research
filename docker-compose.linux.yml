@@ -1,0 +1,27 @@
+# docker-compose.linux.yml
+#
+# Override SOLO PARA LINUX.
+#
+# NOTA IMPORTANTE: compartir /dev/dri con el perfil `sim` NO aporta nada.
+# Ni Xvfb ni Xvnc soportan DRI, asi que mesa cae a llvmpipe aunque el
+# dispositivo este accesible. Medido en el portatil de desarrollo:
+#
+#     con /dev/dri   : 1067 FPS (glxgears), Accelerated: no
+#     forzando sw    : 1166 FPS
+#
+# La unica via a GL por hardware es el perfil `dev`, que usa el servidor X del
+# anfitrion y por tanto su GPU, sin VNC de por medio.
+#
+# GID numericos, no nombres: `group_add: [render]` falla con "Unable to find
+# group render" porque el nombre se resuelve en el /etc/group del CONTENEDOR.
+# En otro ordenador pueden ser distintos: comprobar con
+#     getent group render video
+
+services:
+
+  dev:
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "990"          # render
+      - "44"           # video
