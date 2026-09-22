@@ -19,6 +19,16 @@
 
 services:
 
+  # La webcam del anfitrion, para los casos de uso de percepcion (uc04).
+  # /dev/video* no existe en Windows ni macOS, por eso va en el override de
+  # Linux y no en el compose base.
+  shell:
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    group_add:
+      - "44"           # video
+
   dev:
     devices:
       - /dev/dri:/dev/dri

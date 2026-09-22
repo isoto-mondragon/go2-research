@@ -49,6 +49,17 @@ if ! getent group "$(id -g)" >/dev/null 2>&1; then
     echo "go2:x:$(id -g):" >> /etc/group 2>/dev/null || true
 fi
 
+# El HOME puede apuntar a un directorio que no existe (el compose lo saca del
+# repositorio para que el contenedor no lo ensucie). Sin crearlo, ultralytics
+# avisa de que no puede escribir su configuracion y YOLO vuelve a descargar los
+# pesos en cada arranque.
+if [[ -n "${HOME:-}" && ! -d "${HOME}" ]]; then
+    mkdir -p "${HOME}" 2>/dev/null || true
+fi
+export YOLO_CONFIG_DIR="${HOME:-/tmp}/.config/Ultralytics"
+export MPLCONFIGDIR="${HOME:-/tmp}/.cache/matplotlib"
+mkdir -p "${YOLO_CONFIG_DIR}" "${MPLCONFIGDIR}" 2>/dev/null || true
+
 GO2_MODE="${GO2_MODE:-sim}"
 GO2_GUI="${GO2_GUI:-none}"
 GO2_RES="${GO2_RES:-1280x800x24}"
