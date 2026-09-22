@@ -463,7 +463,25 @@ experimentos no se ven afectados.
 Medido en un portátil sin GPU dedicada (i5-1335U): 1.37 ms de trabajo por paso
 de control sobre un plazo de 20 ms, 0% de pasos fuera de plazo.
 
-### Cómo mejorarlo
+### En Linux: usa la GPU
+
+La forma rápida de mirar el simulador en Linux es el perfil `dev`, que abre la
+ventana en tu escritorio usando tu tarjeta gráfica, sin VNC de por medio:
+
+```bash
+./go2 dev shell
+```
+
+Y dentro:
+
+```bash
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+```
+
+Va fluido. En Windows y macOS no es posible: Docker Desktop no puede compartir
+la GPU para OpenGL.
+
+### Cómo mejorarlo en Windows y macOS
 
 **1. Dar más recursos a Docker** (Windows y macOS). Settings → Resources → al
 menos 4 CPUs y 8 GB. Es la mejora más grande y mucha gente no la hace.
