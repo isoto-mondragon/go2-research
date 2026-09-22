@@ -1,0 +1,48 @@
+{
+  "usecase": "uc03_energy",
+  "fecha": "2026-09-22T09:50:03",
+  "git_sha": "unknown",
+  "modo": "sim",
+  "locomocion": "policy",
+  "masa_kg": 15.0,
+  "velocidades": [
+    0.2,
+    0.4
+  ],
+  "segundos_por_punto": 8.0,
+  "settle_s": 3.0,
+  "contrato": "/workspace/usecases/uc01_locomotion/configs/robot_go2.yaml",
+  "resultados": [
+    {
+      "v_cmd": 0.2,
+      "v_med": 0.0812,
+      "seguimiento": 0.406,
+      "P_mecanica_W": 6.25,
+      "P_electrica_W": null,
+      "CoT_mecanico": 0.523,
+      "CoT_electrico": null,
+      "rendimiento": null,
+      "h_sd": 0.0052,
+      "inclinacion_max_deg": 0.8,
+      "temp_max_C": 0.0,
+      "muestras": 250,
+      "cayo": false
+    },
+    {
+      "v_cmd": 0.4,
+      "v_med": 0.2603,
+      "seguimiento": 0.651,
+      "P_mecanica_W": 14.06,
+      "P_electrica_W": null,
+      "CoT_mecanico": 0.367,
+      "CoT_electrico": null,
+      "rendimiento": null,
+      "h_sd": 0.0073,
+      "inclinacion_max_deg": 0.9,
+      "temp_max_C": 0.0,
+      "muestras": 250,
+      "cayo": false
+    }
+  ],
+  "limitaciones": "En simulacion no hay bms_state: la potencia electrica y el rendimiento salen vacios. La potencia mecanica es una estimacion desde tau_est, que en el robot real tampoco es un par medido con celula de carga."
+}

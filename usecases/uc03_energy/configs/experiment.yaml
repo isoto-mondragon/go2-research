@@ -1,0 +1,21 @@
+# Protocolo de medida de uc03. Versionado para que el barrido sea repetible.
+
+barrido:
+  velocidades_ms: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8]
+  segundos_por_punto: 12
+  # Se descartan los primeros segundos: el robot arranca parado en cada punto
+  # y la aceleracion contamina el promedio.
+  settle_s: 3.0
+
+robot:
+  # PROVISIONAL: pesar el robot al recibirlo. Entra directamente en el
+  # denominador del coste de transporte.
+  masa_kg: 15.0
+
+seguridad:
+  caida_inclinacion_deg: 50
+
+notas:
+  - "En el robot real, empezar por las velocidades bajas."
+  - "Pista despejada de al menos 5 m: a 0.8 m/s durante 12 s recorre 9.6 m."
+  - "Bateria por encima del 60 %: por debajo cambia el comportamiento de los motores."
