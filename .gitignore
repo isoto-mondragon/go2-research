@@ -65,3 +65,11 @@ audit_*.txt
 # nivel a nivel antes de poder reincluir el fichero.
 !experiments/uc01_locomotion/legacy_wsl2/checkpoints/
 !experiments/uc01_locomotion/legacy_wsl2/checkpoints/policy.onnx
+
+# --- Basura del contenedor ---
+# Al arrancar con el uid del anfitrion, el HOME del contenedor es /workspace y
+# escribe aqui su historial y sus cachés.
+.bash_history
+.cache/
+.config/
+.local/
