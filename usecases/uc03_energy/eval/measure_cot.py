@@ -390,7 +390,10 @@ def main() -> int:
     p.add_argument("--iface", default=None)
     p.add_argument("--locomotion", choices=["policy", "sport"], default="policy")
     p.add_argument("--contract", default=None)
-    p.add_argument("--speeds", default="0.1,0.2,0.3,0.4,0.5,0.6,0.8",
+    # Se empieza en 0.2: con 0.1 la politica heredada solo alcanza 0.019 m/s,
+    # titubea y acaba volcando. Es un dato sobre la politica, no un fallo del
+    # protocolo, pero arruina el barrido entero al caerse en el primer punto.
+    p.add_argument("--speeds", default="0.2,0.3,0.4,0.5,0.6,0.8",
                    help="velocidades en m/s, separadas por comas")
     p.add_argument("--secs", type=float, default=12.0, help="segundos por velocidad")
     p.add_argument("--settle", type=float, default=3.0,
@@ -511,13 +514,33 @@ def main() -> int:
               f"a {mejor['v_med']} m/s (comando {mejor['v_cmd']})")
 
     if args.out or resultados:
-        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                             cwd=paths.ROOT, capture_output=True,
-                             text=True).stdout.strip() or "unknown"
-        destino = Path(args.out) if args.out else (
-            paths.EXPERIMENTS / "uc03_energy"
-            / f"{datetime.now():%Y-%m-%dT%H%M}_{sha}_{args.tag}")
-        destino.mkdir(parents=True, exist_ok=True)
+        r = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                           cwd=paths.ROOT, capture_output=True, text=True)
+        sha = r.stdout.strip()
+        if not sha:
+            # Sin sha el experimento NO es trazable: no se sabe con que codigo
+            # se genero. Avisar en alto, porque el run se crearia igual y el
+            # fallo pasaria desapercibido.
+            sha = "unknown"
+            print("\n  AVISO: no se ha podido leer el commit de git.")
+            print("  El experimento quedara SIN TRAZABILIDAD.")
+            if r.stderr.strip():
+                print(f"  git dice: {r.stderr.strip().splitlines()[0]}")
+            print()
+        if args.out:
+            destino = Path(args.out)
+        else:
+            # Segundos en el identificador: con resolucion de minuto, dos runs
+            # seguidos con el mismo sha y la misma etiqueta colisionan y el
+            # segundo SOBRESCRIBE al primero, perdiendo la medida.
+            base = (paths.EXPERIMENTS / "uc03_energy"
+                    / f"{datetime.now():%Y-%m-%dT%H%M%S}_{sha}_{args.tag}")
+            destino = base
+            n = 1
+            while destino.exists():
+                n += 1
+                destino = base.with_name(f"{base.name}_{n}")
+        destino.mkdir(parents=True, exist_ok=False)
 
         with open(destino / "metrics.csv", "w", newline="") as fh:
             w = csv.writer(fh, lineterminator="\n")

@@ -76,6 +76,11 @@ services:
     volumes:
       - .:/workspace
     working_dir: /workspace
+    # Escribir con el usuario del anfitrion en lugar de root. Sin esto, todo lo
+    # que el contenedor cree en el volumen (experimentos, figuras) pertenece a
+    # root y no se puede borrar ni editar desde fuera sin sudo.
+    # En Windows y macOS la variable no existe y se ignora sin consecuencias.
+    user: "${UID_GID:-}"
     command: bash
     stdin_open: true
     tty: true

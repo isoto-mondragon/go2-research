@@ -38,6 +38,17 @@
 
 set -euo pipefail
 
+# Si el contenedor arranca con un uid que no existe en la imagen (porque el
+# compose pasa el del anfitrion para que los ficheros no queden como root), la
+# shell muestra "I have no name!". Se anade la entrada al vuelo.
+if ! getent passwd "$(id -u)" >/dev/null 2>&1; then
+    echo "go2:x:$(id -u):$(id -g):usuario del anfitrion:/workspace:/bin/bash" \
+        >> /etc/passwd 2>/dev/null || true
+fi
+if ! getent group "$(id -g)" >/dev/null 2>&1; then
+    echo "go2:x:$(id -g):" >> /etc/group 2>/dev/null || true
+fi
+
 GO2_MODE="${GO2_MODE:-sim}"
 GO2_GUI="${GO2_GUI:-none}"
 GO2_RES="${GO2_RES:-1280x800x24}"

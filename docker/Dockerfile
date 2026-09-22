@@ -233,6 +233,41 @@ RUN { \
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# USUARIOS ARBITRARIOS
+# El compose arranca el contenedor con el uid del anfitrion (`user: 1000:1000`)
+# para que los ficheros del volumen no queden como root. Ese uid no existe en
+# el /etc/passwd de la imagen, asi que la shell muestra "I have no name!" y
+# `groups` avisa de un GID sin nombre. Es cosmetico, pero ensucia cada sesion.
+#
+# Se resuelve dando permiso de escritura a /etc/passwd al grupo root, que es el
+# gid con el que arranca cualquier uid no declarado, y anadiendo la entrada al
+# vuelo desde el entrypoint.
+# Escritura para todos, no solo para el grupo root: el contenedor arranca con
+# el uid Y el gid del anfitrion (1000:1000), asi que el grupo root no aplica y
+# `g+w` no daba permiso. Es un contenedor de desarrollo, no un servicio
+# expuesto, y el fichero solo recibe una linea de usuario al arrancar.
+RUN chmod 666 /etc/passwd /etc/group
+
+# GIT Y EL REPOSITORIO MONTADO
+# El repositorio se monta desde el anfitrion y pertenece a otro usuario; el
+# contenedor corre como root, asi que git lo rechaza:
+#     fatal: detected dubious ownership in repository at '/workspace'
+# Consecuencia: `git rev-parse` devuelve vacio y los experimentos se registran
+# SIN sha de commit, o sea sin trazabilidad. El run se crea igual, con
+# "unknown" en el nombre, asi que el fallo pasa desapercibido.
+#
+# Se resuelve por variables de entorno en lugar de por /etc/gitconfig: aplica
+# a cualquier usuario del contenedor y no depende de que una capa concreta se
+# haya reconstruido.
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=safe.directory \
+    GIT_CONFIG_VALUE_0=*
+
+# Cinturon y tirantes: tambien en la configuracion de sistema.
+RUN git config --system --add safe.directory '*' \
+    && git config --system --add safe.directory /workspace \
+    && cat /etc/gitconfig
+
 WORKDIR /workspace
 ENV PYTHONPATH=/workspace/src
 EXPOSE 6080 5900
