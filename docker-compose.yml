@@ -71,6 +71,9 @@ services:
       # `sim` levante el suyo, y el visor dejaria de funcionar.
       GO2_GUI: none
       GO2_NO_XVFB: "1"
+      # Sin esto, el HOME del usuario no declarado es /workspace y el
+      # contenedor ensucia el repositorio con .bash_history y .cache/
+      HOME: /tmp/go2home
       GO2_DOMAIN: 1
       GO2_IFACE: lo
     volumes:
@@ -81,10 +84,6 @@ services:
     # root y no se puede borrar ni editar desde fuera sin sudo.
     # En Windows y macOS la variable no existe y se ignora sin consecuencias.
     user: "${UID_GID:-}"
-    environment:
-      # Sin esto, el HOME del usuario no declarado es /workspace y el
-      # contenedor ensucia el repositorio con .bash_history y .cache.
-      HOME: /tmp/go2home
     command: bash
     stdin_open: true
     tty: true
