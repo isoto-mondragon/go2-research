@@ -125,3 +125,34 @@ para OpenGL. Es una limitacion del sistema, no del proyecto.
 Se optimizo durante varias sesiones sin medir donde estaba el cuello. Las dos
 medidas que lo resolvieron (FPS de MuJoCo, y `docker stats`) tardaron dos
 minutos cada una.
+
+## Validación de reproducibilidad (2026-09-22)
+
+Partiendo de un Docker completamente limpio (`docker system prune -a`, 28 GB
+liberados), como haría un usuario nuevo:
+
+| paso | resultado |
+|---|---|
+| clonar el repositorio | sin claves, repo público |
+| `docker compose --profile sim pull` | **1 min 4 s** (6.6 GB en disco) |
+| arrancar el simulador | correcto |
+| crear uc03 desde cero y medir | correcto |
+| crear uc04 con visión y bucle cerrado | correcto |
+
+### Agujeros encontrados y tapados
+
+Ninguno habría aparecido arrancando el simulador y moviendo el robot: solo
+salen construyendo algo real encima.
+
+| hallazgo | dónde |
+|---|---|
+| experimentos registrados sin sha de git | uc03 |
+| identificadores de run que colisionaban y sobrescribían datos | uc03 |
+| ficheros del volumen propiedad de root | uc03 |
+| `.env` con `UID_GID` necesario en Linux y no documentado | instalación |
+| `opencv-python-headless` sin interfaz gráfica | uc04 |
+| perfil `dev` corriendo como root | uc04 |
+
+### Lo que falta
+
+Que lo pruebe alguien que no sea el autor.
