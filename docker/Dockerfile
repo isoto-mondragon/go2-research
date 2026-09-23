@@ -71,6 +71,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------------------------------------------------------------------------
 # 2. Servidor grafico virtual y noVNC
 # ---------------------------------------------------------------------------
+# Estas variables tambien tienen que estar en el entorno de la imagen, no solo
+# exportadas por el entrypoint: las shells abiertas con `docker compose exec`
+# NO heredan lo que exporta el entrypoint. Sin ellas, ultralytics y matplotlib
+# se quejan de directorios no escribibles.
+ENV YOLO_CONFIG_DIR=/tmp/go2home/.config/Ultralytics \
+    MPLCONFIGDIR=/tmp/go2home/.cache/matplotlib
+
+ENV DISPLAY=:99
 # MuJoCo abre una ventana con GLFW, que necesita un display. Xvfb lo provee y
 # mesa da OpenGL por software (llvmpipe). Mas lento que una GPU pero funciona
 # en cualquier maquina, que es justo el requisito.

@@ -230,13 +230,26 @@ reiniciar tras el `usermod`.
 
 ### Descargar el proyecto y la imagen
 
+**En Linux, antes de nada**, crea el fichero `.env` con tu usuario. Sin esto,
+los ficheros que cree el contenedor pertenecerán a root y no podrás borrarlos:
+
+```bash
+git clone https://github.com/isoto-mondragon/go2-research.git
+cd go2-research
+echo "UID_GID=$(id -u):$(id -g)" > .env
+```
+
+En Windows y macOS no hace falta: la variable se ignora.
+
 ```bash
 git clone https://github.com/isoto-mondragon/go2-research.git
 cd go2-research
 docker compose --profile sim pull
 ```
 
-Unos **5 minutos**: se descarga la imagen ya construida, no se compila nada.
+**Aproximadamente 1 minuto** con una conexión decente: se descarga la imagen
+ya construida (6.6 GB en disco, 1.6 GB de descarga), no se compila nada.
+Medido el 2026-09-22 partiendo de un Docker completamente limpio.
 
 <details>
 <summary>Construirla tú mismo (no hace falta)</summary>
