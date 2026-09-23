@@ -13,8 +13,14 @@ control:
   # de distancia: mas grande significa mas cerca.
   objetivo_tamano: 0.60
 
-  kp_giro: 1.2
-  kp_avance: 1.0
+  # Ganancias subidas para compensar la politica de locomocion: en simulacion
+  # sigue el comando solo al 40-56 % a velocidades bajas (medido en uc01), asi
+  # que un comando pequeno se traduce en un arrastre imperceptible.
+  #
+  # En el ROBOT REAL con Sport Mode el seguimiento es mucho mejor: bajar a
+  # kp_giro 1.2 y kp_avance 1.0 antes de la primera prueba con el hardware.
+  kp_giro: 2.0
+  kp_avance: 2.2
 
   # Zonas muertas. Sin ellas el robot oscila sin parar por el ruido de la
   # deteccion, que salta unos pocos pixeles entre fotogramas.
@@ -27,8 +33,8 @@ control:
 
   # Topes propios, mas conservadores que los del contrato: seguir a una
   # persona no necesita la velocidad maxima del robot.
-  vx_max: 0.5
-  wz_max: 0.8
+  vx_max: 0.6
+  wz_max: 1.0
 
 notas:
   - "La camara del Go2 esta a unos 30 cm del suelo: vera piernas y torso, no caras."

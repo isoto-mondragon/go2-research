@@ -273,6 +273,12 @@ RUN git config --system --add safe.directory '*' \
 # exportadas por el entrypoint: las shells abiertas con `docker compose exec`
 # NO heredan lo que exporta el entrypoint. Sin ellas, ultralytics y matplotlib
 # se quejan de directorios no escribibles.
+# opencv-python trae Qt pero no las fuentes, y avisa en cada llamada a
+# imshow. Es cosmetico y no afecta al dibujado (los textos los pinta OpenCV,
+# no Qt), pero ensucia la salida.
+ENV QT_LOGGING_RULES="qt.qpa.fonts=false" \
+    QT_QPA_FONTDIR=/usr/share/fonts
+
 ENV YOLO_CONFIG_DIR=/tmp/go2home/.config/Ultralytics \
     MPLCONFIGDIR=/tmp/go2home/.cache/matplotlib
 

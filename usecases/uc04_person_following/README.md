@@ -83,3 +83,30 @@ el Dockerfile ni reconstruir nada. Prueba:
 - [ ] Probado en simulación
 - [ ] Probado en robot real
 - [ ] Ajuste de ganancias con el robot
+
+## La locomoción en simulación limita la demo
+
+En simulación, el robot se mueve con la política RL heredada, que sigue los
+comandos solo al 40-56 % a velocidades bajas (medido en uc01). Un comando de
+0.1 m/s se convierte en unos 0.05 m/s reales: el robot se arrastra.
+
+**No es un fallo del seguimiento.** El bucle cámara → detección → control →
+DDS funciona; lo que va justo es la capa de locomoción.
+
+`unitree_mujoco` no emula Sport Mode, así que en simulación no hay alternativa.
+En el robot real, `--mode real` usa Sport Mode y el seguimiento será mucho más
+vivo sin tocar una línea de código.
+
+Por eso las ganancias están subidas para simulación. **Antes de la primera
+prueba con el robot, bajarlas** a `kp_giro: 1.2` y `kp_avance: 1.0`, o el robot
+irá demasiado brusco.
+
+## Convención de signos
+
+Referidos al punto de vista del ROBOT, no al de la persona:
+
+| la persona | en la imagen | comando |
+|---|---|---|
+| se mueve a su derecha | aparece a la izquierda, `lateral` negativo | `wz` positivo, el robot gira a su izquierda |
+| se aleja | `tamano` baja | `vx` positivo, avanza |
+| se acerca | `tamano` sube | `vx` negativo, retrocede |
