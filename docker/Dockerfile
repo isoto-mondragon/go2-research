@@ -71,14 +71,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------------------------------------------------------------------------
 # 2. Servidor grafico virtual y noVNC
 # ---------------------------------------------------------------------------
-# Estas variables tambien tienen que estar en el entorno de la imagen, no solo
-# exportadas por el entrypoint: las shells abiertas con `docker compose exec`
-# NO heredan lo que exporta el entrypoint. Sin ellas, ultralytics y matplotlib
-# se quejan de directorios no escribibles.
-ENV YOLO_CONFIG_DIR=/tmp/go2home/.config/Ultralytics \
-    MPLCONFIGDIR=/tmp/go2home/.cache/matplotlib
-
-ENV DISPLAY=:99
 # MuJoCo abre una ventana con GLFW, que necesita un display. Xvfb lo provee y
 # mesa da OpenGL por software (llvmpipe). Mas lento que una GPU pero funciona
 # en cualquier maquina, que es justo el requisito.
@@ -87,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         xvfb x11vnc novnc websockify x11-utils mesa-utils \
         libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa \
         libglfw3 libxinerama1 libxcursor1 libxi6 libxrandr2 \
+        libgtk-3-0 libgl1 libsm6 libxext6 \
         fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
@@ -177,7 +170,7 @@ RUN pip3 install --no-cache-dir --upgrade pip wheel \
     && pip3 install --no-cache-dir \
         "numpy>=1.26,<3" "scipy>=1.11" "matplotlib>=3.8" "pandas>=2.1" \
         "pyyaml>=6.0" mujoco onnxruntime ultralytics \
-        opencv-python-headless dvc \
+        opencv-python dvc \
         pygame
 
 # pygame lo importa unitree_sdk2py_bridge.py en la cabecera del fichero, aunque
@@ -275,6 +268,15 @@ ENV GIT_CONFIG_COUNT=1 \
 RUN git config --system --add safe.directory '*' \
     && git config --system --add safe.directory /workspace \
     && cat /etc/gitconfig
+
+# Estas variables tambien tienen que estar en el entorno de la imagen, no solo
+# exportadas por el entrypoint: las shells abiertas con `docker compose exec`
+# NO heredan lo que exporta el entrypoint. Sin ellas, ultralytics y matplotlib
+# se quejan de directorios no escribibles.
+ENV YOLO_CONFIG_DIR=/tmp/go2home/.config/Ultralytics \
+    MPLCONFIGDIR=/tmp/go2home/.cache/matplotlib
+
+ENV DISPLAY=:99
 
 WORKDIR /workspace
 ENV PYTHONPATH=/workspace/src

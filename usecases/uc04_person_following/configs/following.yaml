@@ -1,0 +1,36 @@
+# uc04 — parametros del seguimiento de personas
+
+modelo: yolo11n.pt       # el mas pequeno: va sobrado en CPU
+ancho: 640
+alto: 480
+imgsz: 320               # resolucion de inferencia; 320 basta y va al doble
+confianza_min: 0.4
+suavizado: 0.6           # media exponencial sobre la deteccion
+fallos_para_perder: 5    # fotogramas fallidos seguidos antes de dar por perdida
+
+control:
+  # Fraccion del alto de la imagen que debe ocupar la persona. Es la consigna
+  # de distancia: mas grande significa mas cerca.
+  objetivo_tamano: 0.60
+
+  kp_giro: 1.2
+  kp_avance: 1.0
+
+  # Zonas muertas. Sin ellas el robot oscila sin parar por el ruido de la
+  # deteccion, que salta unos pocos pixeles entre fotogramas.
+  zona_muerta_lateral: 0.12
+  zona_muerta_tamano: 0.08
+
+  # Rampa de aceleracion (m/s por segundo). Evita tirones cuando la deteccion
+  # salta de golpe.
+  aceleracion_max: 0.6
+
+  # Topes propios, mas conservadores que los del contrato: seguir a una
+  # persona no necesita la velocidad maxima del robot.
+  vx_max: 0.5
+  wz_max: 0.8
+
+notas:
+  - "La camara del Go2 esta a unos 30 cm del suelo: vera piernas y torso, no caras."
+  - "El tamano aparente deja de crecer a corta distancia, cuando la persona se sale del encuadre."
+  - "Probar siempre primero con --dry-run."

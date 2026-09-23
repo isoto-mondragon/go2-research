@@ -128,6 +128,11 @@ services:
       GO2_MODE: ${GO2_MODE:-sim}
       GO2_GUI: x11
       DISPLAY: ${DISPLAY:-:0}
+      # Igual que en `shell`: fuera del repositorio, para no ensuciarlo con
+      # historial y cachés.
+      HOME: /tmp/go2home
+    # Escribir con el usuario del anfitrion en lugar de root.
+    user: "${UID_GID:-}"
     volumes:
       - .:/workspace
       - /tmp/.X11-unix:/tmp/.X11-unix:rw

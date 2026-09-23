@@ -32,6 +32,8 @@ services:
   dev:
     devices:
       - /dev/dri:/dev/dri
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
     group_add:
       - "990"          # render
       - "44"           # video
