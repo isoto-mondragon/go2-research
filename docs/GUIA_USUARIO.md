@@ -268,6 +268,15 @@ fuente. Solo es necesario si modificas el `Dockerfile`.
 
 ### Arrancar el simulador
 
+**En Linux**, usa el envoltorio `./go2`: detecta tu tarjeta gráfica y tu cámara
+y las pasa al contenedor. `docker compose` a secas no lo hace.
+
+```bash
+./go2 sim up
+```
+
+**En Windows y macOS**:
+
 ```bash
 docker compose --profile sim up
 ```
@@ -286,10 +295,11 @@ Abre una **terminal nueva**:
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 sim shell          # en Linux
+# docker compose --profile sim exec shell bash    # Windows y macOS
 ```
 
-El prompt cambia a `root@a1b2c3:/workspace#`. **Ya estás dentro.**
+El prompt cambia a `go2@a1b2c3:/workspace$`. **Ya estás dentro.**
 
 ```bash
 python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --duration 60
@@ -340,7 +350,7 @@ docker compose --profile sim down
 | | prompt | ruta |
 |---|---|---|
 | **tu ordenador** | `tunombre@tumaquina:~$` | `/home/tunombre/...` |
-| **contenedor** | `root@a1b2c3:/workspace#` | `/workspace` |
+| **contenedor** | `go2@a1b2c3:/workspace$` | `/workspace` |
 
 Si dudas:
 
@@ -353,6 +363,40 @@ ls /.dockerenv >/dev/null 2>&1 && echo "CONTENEDOR" || echo "ANFITRION"
 | `docker compose ...` | `python3 ...` de cualquier herramienta |
 | `git` | el simulador |
 | editar ficheros | todo lo demás |
+
+---
+
+### Casos de uso ya montados
+
+Además del control básico, el repositorio trae ejemplos completos que puedes
+ejecutar y usar de plantilla:
+
+**uc03 — coste de transporte.** Mide cuánta energía gasta el robot por metro
+recorrido, con un barrido de velocidades.
+
+```bash
+python3 usecases/uc03_energy/eval/measure_cot.py --mode sim
+python3 usecases/uc03_energy/eval/plot_cot.py experiments/uc03_energy/<run_id>
+```
+
+**uc04 — seguimiento de personas.** El robot te sigue usando la webcam y YOLO.
+Necesita tres terminales: simulador, locomoción y seguimiento.
+
+```bash
+# En Linux, con la cámara y la GPU
+./go2 dev shell
+
+# Terminal 1
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+# Terminal 2
+python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --duration 600
+# Terminal 3
+python3 usecases/uc04_person_following/deploy/follow_person.py --mode sim --show
+```
+
+La webcam solo llega al contenedor en Linux y usando `./go2`.
+
+Para crear el tuyo: [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md).
 
 ---
 
@@ -499,13 +543,14 @@ la GPU para OpenGL.
 **1. Dar más recursos a Docker** (Windows y macOS). Settings → Resources → al
 menos 4 CPUs y 8 GB. Es la mejora más grande y mucha gente no la hace.
 
-**2. Usar un cliente VNC nativo en vez del navegador.** Es bastante más rápido:
+**2. Probar un cliente VNC nativo.** Conectando a `localhost:5900`, sin
+contraseña. En el portátil de desarrollo **no se midió mejora apreciable**
+frente al navegador, porque el cuello es el dibujado por software y no la
+transmisión. En otra máquina puede cambiar.
 
-- Linux: `sudo apt install tigervnc-viewer` y luego `vncviewer localhost:5900`
 - Windows: [TightVNC](https://www.tightvnc.com/) o RealVNC Viewer
 - macOS: Finder → Ir → Conectarse al servidor → `vnc://localhost:5900`
-
-Sin contraseña.
+- Linux: mejor el perfil `dev` de arriba, que no usa VNC
 
 **3. Cerrar la pestaña del navegador cuando no mires.** El servidor VNC solo
 codifica imagen si hay alguien conectado. Cerrar la pestaña libera CPU al
@@ -626,7 +671,9 @@ docker compose --profile sim build --no-cache
 
 | documento | para qué |
 |---|---|
-| `docs/GUIA_COMPLETA.md` | desarrollar casos de uso, arquitectura interna |
+| `docs/ESTRATEGIA_CASOS_USO.md` | **cómo desarrollar un caso de uso propio** |
+
+| `docs/GUIA_COMPLETA.md` | arquitectura interna |
 | `docs/SAFETY.md` | **obligatorio** antes de tocar el robot físico |
 | `docs/DOCKER.md` | detalles del contenedor |
 | `usecases/*/README.md` | cada caso de uso |
