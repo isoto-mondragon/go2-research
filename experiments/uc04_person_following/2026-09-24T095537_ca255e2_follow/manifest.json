@@ -1,0 +1,37 @@
+{
+  "usecase": "uc04_person_following",
+  "fecha": "2026-09-24T09:55:37",
+  "git_sha": "ca255e2",
+  "modo": "real",
+  "camara": 0,
+  "config": {
+    "modelo": "yolo11n.pt",
+    "ancho": 640,
+    "alto": 480,
+    "imgsz": 320,
+    "confianza_min": 0.4,
+    "suavizado": 0.6,
+    "fallos_para_perder": 5,
+    "control": {
+      "objetivo_tamano": 0.6,
+      "kp_giro": 1.2,
+      "kp_avance": 1.4,
+      "zona_muerta_lateral": 0.15,
+      "zona_muerta_tamano": 0.1,
+      "aceleracion_max": 0.6,
+      "vx_min_util": 0.2,
+      "wz_min_util": 0.25,
+      "vx_max": 0.4,
+      "wz_max": 0.6
+    },
+    "notas": [
+      "La camara del Go2 esta a unos 30 cm del suelo: vera piernas y torso, no caras.",
+      "El tamano aparente deja de crecer a corta distancia, cuando la persona se sale del encuadre.",
+      "Probar siempre primero con --dry-run."
+    ]
+  },
+  "duracion_s": 60.0,
+  "fotogramas": 892,
+  "fps_medio": 15.1,
+  "visible_pct": 100.0
+}

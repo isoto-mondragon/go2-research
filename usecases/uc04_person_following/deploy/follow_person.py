@@ -108,24 +108,43 @@ class SalidaSimulador:
 
 
 class SalidaRobot:
-    """Sport Mode del fabricante. Solo robot real."""
+    """Sport Mode del fabricante. Solo robot real.
 
-    nombre = "robot real (Sport Mode)"
+    Llama a SportClient DIRECTAMENTE, no a Go2Controller. Ese wrapper se
+    escribio para el simulador del workspace WSL2 y publica en
+    rt/wirelesscontroller, un topic que el robot fisico NO escucha desde fuera:
+    lo publica el mando. Resultado: los comandos salian y el robot no se movia.
+
+    Esta es la misma secuencia validada a mano: BalanceStand y luego Move.
+    """
+
+    nombre = "robot real (SportClient)"
 
     def __init__(self, domain: int, iface: str) -> None:
-        from go2core.control.go2_controller import Go2Controller
-        self.dog = Go2Controller(mode="real", network=iface)
-        self.dog.stand_up()
+        from unitree_sdk2py.core.channel import ChannelFactoryInitialize
+        from unitree_sdk2py.go2.sport.sport_client import SportClient
+        ChannelFactoryInitialize(domain, iface)
+        self.sport = SportClient()
+        self.sport.SetTimeout(10.0)
+        self.sport.Init()
+        print("  levantando el robot (StandUp + BalanceStand)...")
+        self.sport.StandUp()
+        time.sleep(3.0)
+        self.sport.BalanceStand()
         time.sleep(2.0)
+        self.n = 0
 
     def enviar(self, vx: float, vy: float, wz: float) -> None:
-        self.dog.set_velocity(vx, vy, wz)
+        self.sport.Move(float(vx), float(vy), float(wz))
+        self.n += 1
 
     def cerrar(self) -> None:
         try:
-            self.dog.stop()
-        except Exception:
-            pass
+            self.sport.StopMove()
+            time.sleep(0.5)
+            self.sport.BalanceStand()
+        except Exception as e:
+            print(f"fallo al parar: {e}. USA EL MANDO: L2+B")
 
 
 # ===========================================================================

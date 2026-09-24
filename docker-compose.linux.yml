@@ -36,8 +36,18 @@ services:
     devices:
       - /dev/video0:/dev/video0
       - /dev/video1:/dev/video1
+      - /dev/dri:/dev/dri
     group_add:
       - "44"           # video
+      - "990"          # render
+    # X11 del anfitrion: sin esto no se puede usar --show con el robot real, y
+    # sin ver lo que detecta YOLO se depura a ciegas.
+    environment:
+      GO2_GUI: x11
+      DISPLAY: ${DISPLAY:-:0}
+    volumes:
+      - .:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
 
   dev:
     devices:
