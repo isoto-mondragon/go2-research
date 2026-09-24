@@ -74,6 +74,9 @@ services:
       # Sin esto, el HOME del usuario no declarado es /workspace y el
       # contenedor ensucia el repositorio con .bash_history y .cache/
       HOME: /tmp/go2home
+      # Sin esto el contenedor deja __pycache__ en el repositorio montado y,
+      # con distinto usuario segun el perfil, acaba dando Permission denied.
+      PYTHONDONTWRITEBYTECODE: "1"
       GO2_DOMAIN: 1
       GO2_IFACE: lo
     volumes:
@@ -131,6 +134,9 @@ services:
       # Igual que en `shell`: fuera del repositorio, para no ensuciarlo con
       # historial y cachés.
       HOME: /tmp/go2home
+      # Sin esto el contenedor deja __pycache__ en el repositorio montado y,
+      # con distinto usuario segun el perfil, acaba dando Permission denied.
+      PYTHONDONTWRITEBYTECODE: "1"
     # Escribir con el usuario del anfitrion en lugar de root.
     user: "${UID_GID:-}"
     volumes:

@@ -13,6 +13,16 @@ control:
   # de distancia: mas grande significa mas cerca.
   objetivo_tamano: 0.60
 
+  # Con la CAMARA DEL ROBOT el rango es otro. Medido el 2026-09-24:
+  #     1 m -> tam 0.85     2 m -> ~0.75     3 m -> 0.65
+  # El ojo de pez comprime la perspectiva y el recuadro varia la mitad que con
+  # la webcam. Objetivo 0.75 para mantener unos 2 metros.
+  #
+  # La zona muerta tambien baja: con solo 0.20 de rango entre 1 y 3 metros, una
+  # zona muerta de 0.10 se comeria la mitad del margen util.
+  objetivo_tamano_robot: 0.75
+  zona_muerta_tamano_robot: 0.04
+
   # Ganancias subidas para compensar la politica de locomocion: en simulacion
   # sigue el comando solo al 40-56 % a velocidades bajas (medido en uc01), asi
   # que un comando pequeno se traduce en un arrastre imperceptible.

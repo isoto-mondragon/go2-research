@@ -39,8 +39,10 @@ Uso como programa, para probar la cámara sin mover el robot:
 
 from __future__ import annotations
 
+import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -64,7 +66,9 @@ class DetectorPersonas:
     def __init__(self, modelo: str = "yolo11n.pt", camara: int = 0,
                  ancho: int = 640, alto: int = 480, confianza_min: float = 0.4,
                  suavizado: float = 0.6, fallos_para_perder: int = 5,
-                 imgsz: int = 320) -> None:
+                 imgsz: int = 320, fuente: str = "webcam",
+                 iface: str = "enp3s0", domain: int = 0,
+                 init_dds: bool = True) -> None:
         from ultralytics import YOLO
 
         self.yolo = YOLO(modelo)
@@ -73,16 +77,28 @@ class DetectorPersonas:
         self.fallos_para_perder = fallos_para_perder
         self.imgsz = imgsz
 
-        self.cap = cv2.VideoCapture(camara)
-        if not self.cap.isOpened():
-            raise RuntimeError(
-                f"No se puede abrir /dev/video{camara}.\n"
-                "En Linux hay que pasar la camara al contenedor: usa ./go2 en\n"
-                "lugar de `docker compose`, que es quien carga el override."
-            )
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, ancho)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, alto)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # imagen reciente, no en cola
+        # Dos fuentes posibles. La del robot entrega 1920x1080 a unos 24 fps
+        # con 11 ms de latencia (medido), mejor que la webcam del portatil, y
+        # ademas ve lo que ve el robot, que es lo natural para que te siga.
+        self.fuente = fuente
+        self.ancho_salida = ancho
+        if fuente == "robot":
+            sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
+            from robot_camera import CamaraRobot
+            self.cam = CamaraRobot(iface, domain, init_dds=init_dds)
+            self.cap = None
+        else:
+            self.cam = None
+            self.cap = cv2.VideoCapture(camara)
+            if not self.cap.isOpened():
+                raise RuntimeError(
+                    f"No se puede abrir /dev/video{camara}.\n"
+                    "En Linux hay que pasar la camara al contenedor: usa ./go2 en\n"
+                    "lugar de `docker compose`, que es quien carga el override."
+                )
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, ancho)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, alto)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         self._lat = 0.0
         self._tam = 0.0
@@ -93,9 +109,20 @@ class DetectorPersonas:
 
     # ------------------------------------------------------------------
     def leer(self) -> tuple[np.ndarray | None, Deteccion]:
-        ok, imagen = self.cap.read()
-        if not ok:
-            return None, Deteccion(visible=False, perdida_s=self._perdida())
+        if self.cam is not None:
+            imagen = self.cam.leer()
+            if imagen is None:
+                return None, Deteccion(visible=False, perdida_s=self._perdida())
+            # 1920x1080 no cabe en pantalla y es un desperdicio: YOLO infiere
+            # a 320 px.
+            if self.ancho_salida and imagen.shape[1] > self.ancho_salida:
+                e = self.ancho_salida / imagen.shape[1]
+                imagen = cv2.resize(imagen, None, fx=e, fy=e,
+                                    interpolation=cv2.INTER_AREA)
+        else:
+            ok, imagen = self.cap.read()
+            if not ok:
+                return None, Deteccion(visible=False, perdida_s=self._perdida())
 
         h, w = imagen.shape[:2]
         # classes=[0] restringe a la clase `person` de COCO: no interesa el
@@ -178,7 +205,8 @@ class DetectorPersonas:
         return vis
 
     def cerrar(self) -> None:
-        self.cap.release()
+        if self.cap is not None:
+            self.cap.release()
 
 
 # ===========================================================================

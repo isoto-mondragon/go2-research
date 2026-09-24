@@ -243,6 +243,8 @@ def main() -> int:
     p.add_argument("--mode", choices=["sim", "real"], default="sim")
     p.add_argument("--iface", default=None)
     p.add_argument("--camera", type=int, default=0)
+    p.add_argument("--source", choices=["webcam", "robot"], default="webcam",
+                   help="webcam del portatil, o camara frontal del robot")
     p.add_argument("--config", default=str(UC / "configs" / "following.yaml"))
     p.add_argument("--show", action="store_true", help="ventana con la deteccion")
     p.add_argument("--duration", type=float, default=300.0)
@@ -273,13 +275,25 @@ def main() -> int:
         if input("\n  Escribe 'si' para continuar: ").strip().lower() != "si":
             return 1
 
+    # Con la camara del robot el objetivo de tamano es distinto: el ojo de pez
+    # comprime la perspectiva y el recuadro varia la mitad (0.85 a 1 m frente a
+    # 0.65 a 3 m, medido) que con la webcam.
+    if args.source == "robot" and "objetivo_tamano_robot" in cfg["control"]:
+        cfg["control"]["objetivo_tamano"] = cfg["control"]["objetivo_tamano_robot"]
+        cfg["control"]["zona_muerta_tamano"] = cfg["control"].get(
+            "zona_muerta_tamano_robot", cfg["control"]["zona_muerta_tamano"])
+        print(f"  objetivo de tamano (camara del robot): "
+              f"{cfg['control']['objetivo_tamano']}")
+
     print("cargando YOLO...")
     det = DetectorPersonas(modelo=cfg["modelo"], camara=args.camera,
                            ancho=cfg["ancho"], alto=cfg["alto"],
                            confianza_min=cfg["confianza_min"],
                            suavizado=cfg["suavizado"],
                            fallos_para_perder=cfg["fallos_para_perder"],
-                           imgsz=cfg["imgsz"])
+                           imgsz=cfg["imgsz"], fuente=args.source,
+                           iface=iface, domain=domain,
+                           init_dds=(args.source == "robot"))
     print("detector listo")
 
     salida = None
