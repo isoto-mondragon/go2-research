@@ -105,3 +105,25 @@ from go2core.control.go2_controller import Go2Controller   # Sport Mode
 3. Las figuras se generan con un comando, nunca se editan a mano
 4. Antes de tocar el robot, `docs/SAFETY.md`
 5. Prueba siempre con `--dry-run` antes de mover nada
+
+## Cuidado con `Go2Controller` en modo real
+
+`src/go2core/control/go2_controller.py` viene del workspace WSL2, donde el
+simulador era `play_dds.py`. Publica en `rt/wirelesscontroller`.
+
+Eso funciona en simulacion, pero **el robot fisico NO escucha ese topic desde
+fuera**: lo publica el mando. Los comandos salen, nadie los recibe, y el robot
+se queda quieto sin ningun error.
+
+Para mover el robot real hay que llamar a `SportClient` directamente:
+
+```python
+from unitree_sdk2py.go2.sport.sport_client import SportClient
+sport = SportClient(); sport.SetTimeout(10.0); sport.Init()
+sport.StandUp(); time.sleep(3)
+sport.BalanceStand(); time.sleep(2)
+sport.Move(vx, vy, wz)      # repetir a 20 Hz mientras se quiera avanzar
+sport.StopMove()
+```
+
+Ver `tools/teleop_real.py` y `SalidaRobot` en uc04.
