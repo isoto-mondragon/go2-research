@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-09-24T09:12:32",
+  "mode": "real",
+  "domain": 0,
+  "iface": "enp3s0",
+  "messages": 15049,
+  "hz": 499.91,
+  "jitter_ms": 0.371,
+  "worst_gap_ms": 14.026,
+  "mode_machine": null,
+  "soc": 80,
+  "power_v": 30.79230308532715,
+  "checks": {
+    "hz": true,
+    "jitter": true,
+    "gap": true,
+    "imu": true,
+    "joints": true,
+    "tau": true,
+    "temp": true,
+    "foot": true,
+    "battery": true
+  },
+  "passed": true
+}
