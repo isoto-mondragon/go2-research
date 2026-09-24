@@ -29,6 +29,16 @@ services:
     group_add:
       - "44"           # video
 
+  # El perfil `real` tambien necesita la camara: uc04 combina percepcion con
+  # el robot fisico. Sin esto, follow_person.py --mode real no encuentra
+  # /dev/video0 aunque el anfitrion la tenga.
+  real:
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    group_add:
+      - "44"           # video
+
   dev:
     devices:
       - /dev/dri:/dev/dri

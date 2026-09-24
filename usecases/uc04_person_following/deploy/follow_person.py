@@ -140,13 +140,22 @@ class ControlSeguimiento:
         self.zm_tamano = float(cfg["zona_muerta_tamano"])
         self.acel_max = float(cfg["aceleracion_max"])
 
-        self.vx_min, self.vx_max = limites["vx_range"]
-        self.wz_min, self.wz_max = limites["wz_range"]
+        # Limites absolutos del contrato. NO confundir con los umbrales
+        # minimos utiles de mas abajo: usar el mismo nombre para ambos hacia
+        # que el clip final recortase vx al rango [0.20, 1.0], y el robot no
+        # podia parar ni retroceder nunca.
+        self.vx_lim_min, self.vx_lim_max = limites["vx_range"]
+        self.wz_lim_min, self.wz_lim_max = limites["wz_range"]
         # Tope propio, mas conservador que el del contrato: seguir a una
         # persona no necesita la velocidad maxima del robot y limitarla hace
         # la demo mucho mas segura.
         self.vx_tope = float(cfg["vx_max"])
         self.wz_tope = float(cfg["wz_max"])
+        # Sport Mode ignora los comandos por debajo de un umbral interno: el
+        # robot se queda quieto y parece que el seguimiento no funciona. Si el
+        # comando no es cero pero se queda corto, se sube al minimo util.
+        self.vx_util = float(cfg.get("vx_min_util", 0.0))
+        self.wz_util = float(cfg.get("wz_min_util", 0.0))
 
         self.vx = self.wz = 0.0
 
@@ -169,14 +178,40 @@ class ControlSeguimiento:
         objetivo_vx = float(np.clip(objetivo_vx, -self.vx_tope, self.vx_tope))
         objetivo_wz = float(np.clip(objetivo_wz, -self.wz_tope, self.wz_tope))
 
+        # Umbral minimo util: Sport Mode ignora los comandos pequenos, asi que
+        # un comando por debajo del minimo deja al robot quieto y parece que el
+        # seguimiento no funciona.
+        #
+        # CUIDADO con el cero: la rampa deja valores como 1e-6 en vez de cero
+        # exacto, y sin este epsilon el umbral los elevaba al minimo. Resultado:
+        # el robot recibia orden de moverse estando la persona centrada y a la
+        # distancia correcta.
+        EPS = 1e-3
+        if EPS < abs(objetivo_vx) < self.vx_util:
+            objetivo_vx = float(np.sign(objetivo_vx) * self.vx_util)
+        elif abs(objetivo_vx) <= EPS:
+            objetivo_vx = 0.0
+
+        if EPS < abs(objetivo_wz) < self.wz_util:
+            objetivo_wz = float(np.sign(objetivo_wz) * self.wz_util)
+        elif abs(objetivo_wz) <= EPS:
+            objetivo_wz = 0.0
+
         # Rampa de aceleracion: sin esto, un salto de la deteccion produce un
         # tiron brusco en el robot.
         paso_max = self.acel_max * dt
         self.vx += float(np.clip(objetivo_vx - self.vx, -paso_max, paso_max))
         self.wz += float(np.clip(objetivo_wz - self.wz, -paso_max, paso_max))
 
-        self.vx = float(np.clip(self.vx, self.vx_min, self.vx_max))
-        self.wz = float(np.clip(self.wz, self.wz_min, self.wz_max))
+        # La rampa deja residuos como 1e-6 al converger a cero. Sin limpiarlos,
+        # el robot nunca queda completamente parado.
+        if abs(self.vx) < 1e-3:
+            self.vx = 0.0
+        if abs(self.wz) < 1e-3:
+            self.wz = 0.0
+
+        self.vx = float(np.clip(self.vx, self.vx_lim_min, self.vx_lim_max))
+        self.wz = float(np.clip(self.wz, self.wz_lim_min, self.wz_lim_max))
         return self.vx, 0.0, self.wz
 
 
@@ -279,8 +314,11 @@ def main() -> int:
                     break
             elif n % 15 == 0:
                 estado = "persona" if d.visible else "  ---  "
-                print(f"\r  {estado}  lat {d.lateral:+.2f}  tam {d.tamano:.2f}"
-                      f"  ->  vx {vx:+.2f}  wz {wz:+.2f}   {det.fps:4.1f} fps",
+                zg = "ZM" if abs(d.lateral) < control.zm_lateral else "  "
+                za = "ZM" if abs(control.objetivo - d.tamano) < control.zm_tamano else "  "
+                print(f"\r  {estado}  lat {d.lateral:+.2f}{zg}  "
+                      f"tam {d.tamano:.2f}{za}(obj {control.objetivo:.2f})"
+                      f"  ->  vx {vx:+.2f}  wz {wz:+.2f}   {det.fps:4.1f} fps  ",
                       end="", flush=True)
 
     except Exception as e:

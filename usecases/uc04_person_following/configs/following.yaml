@@ -19,13 +19,22 @@ control:
   #
   # En el ROBOT REAL con Sport Mode el seguimiento es mucho mejor: bajar a
   # kp_giro 1.2 y kp_avance 1.0 antes de la primera prueba con el hardware.
-  kp_giro: 2.0
-  kp_avance: 2.2
+  # Ganancias para el ROBOT REAL con Sport Mode (2026-09-24).
+  #
+  # Sport Mode ignora los comandos por debajo de un umbral interno y anda en
+  # marcha discreta: por debajo de 0.2 m/s el robot se queda quieto o avanza a
+  # tirones. Por eso la velocidad minima efectiva es alta y las ganancias no
+  # pueden ser tan bajas como parecerian razonables.
+  #
+  # En SIMULACION habia que subirlas a 2.0 y 2.2 para compensar la politica RL,
+  # que sigue el comando al 40-56 %. Sport Mode lo sigue mucho mejor.
+  kp_giro: 1.2
+  kp_avance: 1.4
 
   # Zonas muertas. Sin ellas el robot oscila sin parar por el ruido de la
   # deteccion, que salta unos pocos pixeles entre fotogramas.
-  zona_muerta_lateral: 0.12
-  zona_muerta_tamano: 0.08
+  zona_muerta_lateral: 0.15
+  zona_muerta_tamano: 0.10
 
   # Rampa de aceleracion (m/s por segundo). Evita tirones cuando la deteccion
   # salta de golpe.
@@ -33,8 +42,11 @@ control:
 
   # Topes propios, mas conservadores que los del contrato: seguir a una
   # persona no necesita la velocidad maxima del robot.
-  vx_max: 0.6
-  wz_max: 1.0
+  # Velocidad minima util: por debajo de 0.2 Sport Mode ignora el comando.
+  vx_min_util: 0.20
+  wz_min_util: 0.25
+  vx_max: 0.4
+  wz_max: 0.6
 
 notas:
   - "La camara del Go2 esta a unos 30 cm del suelo: vera piernas y torso, no caras."
