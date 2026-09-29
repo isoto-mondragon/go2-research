@@ -40,7 +40,7 @@ Para el robot de verdad, cambia a `--mode real`, ten el mando en la mano
 
 Ctrl + C para parar cuando quieras. El robot se queda quieto.
 
-## Cuatro ejemplos para empezar
+## Cinco ejemplos para empezar
 
 Se copian encima de `mi_caso.py`:
 
@@ -51,9 +51,13 @@ cp usecases/uc05_mi_idea/ejemplos/1_avanzar.py usecases/uc05_mi_idea/mi_caso.py
 | ejemplo | qué hace | qué enseña |
 |---|---|---|
 | `1_avanzar.py` | avanza dos segundos y para | lo más simple |
-| `2_girar_segun_bateria.py` | gira mientras la batería pase del 60 % | leer un dato del robot |
+| `2_alternar_avanzar_y_girar.py` | cada 5 s alterna entre avanzar y girar | leer un dato del robot |
 | `3_parar_si_se_inclina.py` | avanza, pero para si se inclina más de 15° | reaccionar a un sensor |
 | `4_seguir_con_camara.py` | gira hacia la persona que ve | usar la cámara |
+| `5_girar_segun_bateria_SOLO_REAL.py` | gira mientras la batería pase del 60 % | **solo con el robot real** |
+
+Los ejemplos 1, 2 y 3 se ven moverse en el simulador. El 4 necesita una cámara.
+El 5 no hace nada en simulación.
 
 ## Qué puedes leer del robot
 
@@ -74,7 +78,7 @@ Dentro de `decidir(tel, t)`:
 ## Lo que no puedes hacer en simulación
 
 **Batería, temperatura y fuerza de los pies valen 0.** El simulador no los
-tiene. No es un fallo. Un caso que dependa de ellos (como el ejemplo 2) solo
+tiene. No es un fallo. Un caso que dependa de ellos (como el ejemplo 5) solo
 hace algo en el robot real.
 
 Además, en el robot real las velocidades por debajo de 0.2 m/s las ignora el
