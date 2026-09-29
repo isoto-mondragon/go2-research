@@ -12,7 +12,7 @@ DOS DESTINOS, UN SOLO CÓDIGO
     --mode sim    publica en rt/wirelesscontroller, igual que tools/teleop.py.
                   Lo consume `run_policy.py --teleop`, que mueve al robot en
                   el simulador con la política de locomoción.
-    --mode real   llama a Go2Controller, es decir a Sport Mode. El controlador
+    --mode real   llama a SportClient, es decir a Sport Mode. El controlador
                   del fabricante se encarga de caminar.
 
 En los dos casos este script solo decide velocidades. No sabe caminar, y no
@@ -111,10 +111,12 @@ class SalidaSimulador:
 class SalidaRobot:
     """Sport Mode del fabricante. Solo robot real.
 
-    Llama a SportClient DIRECTAMENTE, no a Go2Controller. Ese wrapper se
-    escribio para el simulador del workspace WSL2 y publica en
-    rt/wirelesscontroller, un topic que el robot fisico NO escucha desde fuera:
-    lo publica el mando. Resultado: los comandos salian y el robot no se movia.
+    Llama a SportClient DIRECTAMENTE, no a Go2Controller. Comprobado con el
+    robot: con Go2Controller este script no movia el robot, y con SportClient
+    directo si. La causa probable es que la secuencia de arranque de
+    Go2Controller no incluye BalanceStand(): SportClient necesita
+    StandUp -> BalanceStand antes de que Move tenga efecto. PENDIENTE de
+    verificar con el robot si Go2Controller funciona anadiendo BalanceStand().
 
     Esta es la misma secuencia validada a mano: BalanceStand y luego Move.
     """

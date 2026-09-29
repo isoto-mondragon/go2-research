@@ -70,11 +70,16 @@ velocidades y camina. Robusto, no hay que entrenar nada. Es lo adecuado para
 casi todos los casos de uso: navegación, percepción, medición energética.
 
 ```python
-from go2core.control.go2_controller import Go2Controller
-dog = Go2Controller(mode="real", network="enp3s0")
-dog.stand_up()
-dog.set_velocity(vx=0.3, vy=0.0, wz=0.0)
+import time
+from unitree_sdk2py.core.channel import ChannelFactoryInitialize
+from unitree_sdk2py.go2.sport.sport_client import SportClient
+ChannelFactoryInitialize(0, "enp3s0")
+sport = SportClient(); sport.SetTimeout(10.0); sport.Init()
+sport.StandUp(); time.sleep(3); sport.BalanceStand(); time.sleep(2)
+sport.Move(0.3, 0.0, 0.0)      # repetir a ~20 Hz; sport.StopMove() al terminar
 ```
+
+Comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. Detalle en [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md) y [`API.md`](API.md).
 
 **LowCmd (bajo nivel).** Control articular directo: posición, ganancias y par
 por motor. Necesario para desplegar políticas RL propias.
@@ -239,17 +244,22 @@ Para navegación, percepción o medición energética **no hace falta entrenar
 nada**. El robot ya camina. Tu código manda velocidades y lee sensores:
 
 ```python
-from go2core.control.go2_controller import Go2Controller
+from unitree_sdk2py.go2.sport.sport_client import SportClient
 from go2core.control.lowlevel import LowLevel
 from go2core.control import contract as ct
 
 c = ct.load_contract("usecases/uc01_locomotion/configs/robot_go2.yaml")
-dog = Go2Controller(mode="real", network="enp3s0")   # comandos
+sport = SportClient(); sport.SetTimeout(10.0); sport.Init()   # comandos
+sport.StandUp(); time.sleep(3); sport.BalanceStand(); time.sleep(2)
 ll = LowLevel(c, mode="real"); ll.start()            # telemetría
 
-dog.set_velocity(vx=0.3)
+sport.Move(0.3, 0.0, 0.0)
 print(ll.joint_tau(), ll.tilt_rad())
 ```
+
+**Cuidado:** `LowLevel.start()` publica LowCmd, y con Sport Mode activo eso
+pelea con el controlador del fabricante. Para solo leer, usa un suscriptor de
+`rt/lowstate` (ver [`API.md`](API.md), sección 1). Sobre `Go2Controller`: comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`.
 
 `lowstate` sigue publicando con Sport Mode activo, así que tienes par por motor,
 temperatura, fuerza en los pies y batería mientras el robot camina solo.
@@ -375,6 +385,8 @@ dog.stand_up()
 python3 tools/check_write_path.py --real-robot-i-have-read-safety \
         --iface enp3s0 --joint 1 --kp 5 --offset 0.1
 ```
+
+Este paso solo comprueba que el robot se levanta. Para moverlo, comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`.
 
 ---
 

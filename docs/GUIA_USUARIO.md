@@ -124,6 +124,8 @@ dog.set_velocity(vx=0.3, vy=0.0, wz=0.0)   # adelante a 0.3 m/s
 dog.stop()
 ```
 
+Ese ejemplo es para el **simulador**. En el robot real, comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. Ver [`API.md`](API.md).
+
 **Bajo nivel — LowCmd.** Control articular directo: posición objetivo, ganancias
 y par de cada uno de los 12 motores, a 200-500 Hz. Necesario para desplegar
 políticas propias de aprendizaje por refuerzo.
@@ -626,6 +628,7 @@ dog = Go2Controller(mode='real', network='enp3s0')
 dog.stand_up()
 "
 ```
+Este paso solo comprueba que el robot se levanta. Para moverlo, comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`.
 
 El control de bajo nivel exige liberar Sport Mode antes y tiene su propio
 protocolo en `SAFETY.md`.
