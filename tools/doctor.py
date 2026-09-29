@@ -149,7 +149,14 @@ def comprobar_anfitrion(args) -> None:
         else:
             ok(f"GO2_IFACE={iface} existe")
             c, out = corre(["ip", "-br", "addr", "show", iface])
-            if "192.168.123." in out:
+            # Sin cable conectado no tiene sentido pedir que configure la IP:
+            # el problema es fisico y el mensaje confundia.
+            estado = dict(ifaces).get(iface, "?")
+            if estado != "UP" and "192.168.123." not in out:
+                avisa(f"{iface} no tiene cable conectado",
+                      "conecta el cable al robot y enciendelo; "
+                      "sin robot esto no es un problema")
+            elif "192.168.123." in out:
                 ok("IP del robot configurada", out.split()[-1])
                 c, _ = corre(["ping", "-c", "2", "-W", "2", "192.168.123.161"], 8)
                 if c == 0:
@@ -344,10 +351,23 @@ def main() -> int:
 
     if args.fix:
         print(f"{Y}Ejecutando los arreglos automatizables...{Z}\n")
+        # Se ejecuta todo lo que sea un comando de este proyecto. Lo demas
+        # (sudo, reinicios, "conecta un cable") se lista en voz alta: callarlo
+        # haria creer al usuario que el arreglo se ha aplicado.
+        aplicables = ("python3 tools/", "echo ", "sed ", "./env/")
+        manuales = []
         for que, arreglo in problemas:
-            if arreglo.startswith(("python3 tools/", "echo ", "sed ")):
+            if arreglo.startswith(aplicables):
                 print(f"  $ {arreglo}")
                 subprocess.run(arreglo, shell=True, cwd=RAIZ)
+            else:
+                manuales.append((que, arreglo))
+        if manuales:
+            print(f"\n{R}{B}NO puedo aplicar {len(manuales)} arreglo(s); "
+                  f"hazlos tu:{Z}")
+            for que, arreglo in manuales:
+                print(f"  {R}- {que}{Z}")
+                print(f"    {B}{arreglo}{Z}")
         print(f"\n{Y}Vuelve a ejecutar el diagnostico para comprobar.{Z}")
     else:
         print(f"  {Y}Anade --fix para aplicar los arreglos automatizables.{Z}")

@@ -11,7 +11,7 @@ falta NVIDIA.
 
 ---
 
-> **¿Es tu primera vez?** Empieza por [`EMPEZAR.md`](EMPEZAR.md): son 30
+> **¿Es tu primera vez?** Empieza por [`GUIA.md`](GUIA.md): son 30
 > minutos, copiando y pegando, sin tecnicismos. Vuelve aquí cuando quieras
 > entender cómo está montado todo.
 

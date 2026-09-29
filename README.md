@@ -5,9 +5,9 @@ Grupo DANZ, Escuela Politécnica Superior, Mondragon Unibertsitatea.
 
 ## Empezar
 
-**Nunca has usado esto**: [`docs/QUICKSTART.md`](docs/QUICKSTART.md)
-Del ordenador en blanco a mover el robot en el simulador, en 45 minutos.
-Funciona en Linux, Windows y macOS, con cualquier tarjeta gráfica.
+**Nunca has usado esto**: [`docs/GUIA.md`](docs/GUIA.md)
+Del ordenador en blanco al simulador (Linux, Windows y macOS) y, en Linux,
+al robot físico siguiéndote con su cámara.
 
 ```bash
 git clone git@github.com:isoto-mondragon/go2-research.git

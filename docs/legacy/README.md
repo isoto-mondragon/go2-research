@@ -3,7 +3,7 @@
 Estos documentos describen el montaje ORIGINAL en WSL2 sobre Windows, con
 rutas tipo `~/robotics` e instalacion manual de todas las dependencias.
 
-**NO los sigas.** El entorno actual es la imagen Docker: ver `docs/QUICKSTART.md`.
+**NO los sigas.** El entorno actual es la imagen Docker: ver `docs/GUIA.md`.
 
 Se conservan porque documentan decisiones y problemas que siguen siendo
 validos (configuracion de red del robot, primeros pasos con el hardware,

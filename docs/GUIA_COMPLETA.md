@@ -1,7 +1,7 @@
 # Guía completa
 
 Para quien vaya a desarrollar sobre esta infraestructura. Si solo quieres
-arrancar el simulador y mover el perro, con [`QUICKSTART.md`](QUICKSTART.md)
+arrancar el simulador y mover el perro, con [`GUIA.md`](GUIA.md)
 tienes bastante.
 
 Grupo DANZ, Escuela Politécnica Superior, Mondragon Unibertsitatea.
@@ -427,7 +427,7 @@ uc01, locomoción RL, está cerrado con un resultado propio y en pausa.
 
 Documentación relacionada:
 
-- [`QUICKSTART.md`](QUICKSTART.md) — arrancar en 45 minutos
+- [`GUIA.md`](GUIA.md) — arrancar en 45 minutos
 - [`DOCKER.md`](DOCKER.md) — detalles del contenedor
 - [`SAFETY.md`](SAFETY.md) — obligatorio antes del robot
 - [`USAGE_GUIDE.md`](USAGE_GUIDE.md) — notas de uso diario
