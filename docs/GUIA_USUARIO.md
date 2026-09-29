@@ -11,6 +11,10 @@ falta NVIDIA.
 
 ---
 
+> **¿Es tu primera vez?** Empieza por [`EMPEZAR.md`](EMPEZAR.md): son 30
+> minutos, copiando y pegando, sin tecnicismos. Vuelve aquí cuando quieras
+> entender cómo está montado todo.
+
 ## Índice
 
 1. [Qué es esto y qué puedes hacer](#1-qué-es-esto-y-qué-puedes-hacer)
