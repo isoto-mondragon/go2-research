@@ -32,7 +32,7 @@ Arrancar el simulador:
 En Linux el navegador satura la CPU (406 %) y el simulador va a trompicones:
 no lo uses.
 
-**Vas a desarrollar**: [`docs/GUIA_COMPLETA.md`](docs/GUIA_COMPLETA.md)
+**Vas a desarrollar**: copia [`usecases/uc00_plantilla/`](usecases/uc00_plantilla/README.md) (funciona sin tocar nada) y usa la chuleta [`docs/API.md`](docs/API.md). Más contexto: [`docs/GUIA_COMPLETA.md`](docs/GUIA_COMPLETA.md).
 
 **Vas a tocar el robot físico**: [`docs/SAFETY.md`](docs/SAFETY.md), obligatorio.
 
@@ -59,6 +59,7 @@ sin instalar ROS, Python ni CUDA en tu máquina.
 | uc02_room_exit | navegación de salida de sala | planificado |
 | uc03_energy_aware | coste de transporte y selección de marcha | siguiente |
 | uc04_person_following | seguimiento de personas con YOLO | base montada |
+| uc00_plantilla | plantilla para crear el tuyo | lista |
 
 ## Reglas
 

@@ -658,7 +658,7 @@ Cerrar todo: `exit` en cada terminal de la caja, `Ctrl + C` donde corra algo.
 | `python3 tools/doctor.py` dice `no tiene cable conectado` | La interfaz está apagada porque no hay cable | Sin robot no es un problema. Con robot: revisa cable y que esté encendido |
 | `el robot no responde` en `probe` o `doctor` | Robot aún arrancando, cable, o red mal configurada | Espera 2 minutos, revisa el cable, repite `./env/go2_net.sh up` |
 | la cámara del robot no da imagen | La app del móvil está usando la cámara | Ciérrala **del todo** (no en segundo plano) |
-| el robot no se mueve y no da error | Estás usando `tools/teleop.py` o `Go2Controller`: no valen para el robot real | Usa `tools/teleop_real.py` o `follow_person.py --mode real` |
+| el robot no se mueve y no da error | Estás usando `tools/teleop.py` (solo simulador), o `Go2Controller`, que con el robot no funcionó (ver `ESTRATEGIA_CASOS_USO.md`) | Usa `tools/teleop_real.py` o `follow_person.py --mode real` |
 | el robot va a tirones o se queda quieto a poca velocidad | El controlador del fabricante ignora órdenes por debajo de ~0.2 m/s | No es un fallo. Aumenta la velocidad |
 | el robot se dobla / se tumba al empezar o al terminar | Toma y suelta el control | Es normal (ver 4.0) |
 | la detección no ve mi cara | La cámara está a 30 cm del suelo | Es normal: ve piernas y torso |
@@ -676,6 +676,9 @@ también funciona y comprueba lo que corresponde dentro.
   variables, herramientas y límites conocidos.
 - [`GUIA_COMPLETA.md`](GUIA_COMPLETA.md): si vas a desarrollar tu propio caso
   de uso.
+- [`usecases/uc00_plantilla/`](../usecases/uc00_plantilla/README.md): si vas
+  a hacer tu propio caso de uso, **empieza copiando esta plantilla**. Funciona
+  sin tocar nada. Las líneas exactas de la API están en [`API.md`](API.md).
 - [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md): cómo desarrollar un
   caso de uso nuevo y qué transfiere del simulador al robot real.
 - [`SAFETY.md`](SAFETY.md): protocolo de seguridad completo del grupo. Léelo

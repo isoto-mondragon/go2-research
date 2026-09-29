@@ -1,5 +1,10 @@
 # Cómo desarrollar un caso de uso
 
+> **Empieza copiando [`usecases/uc00_plantilla/`](../usecases/uc00_plantilla/README.md).**
+> Arranca tal cual y ya trae los argumentos, las dos salidas (simulador y robot
+> real), los límites y el registro. Las líneas exactas de cada operación están
+> en [`docs/API.md`](API.md). Lo que sigue explica el porqué.
+
 ## Lo primero: no hace falta entrenar nada
 
 El Go2 EDU trae **Sport Mode**, el controlador de locomoción del fabricante.
@@ -47,7 +52,7 @@ Tu código decide `(vx, vy, wz)`. Una clase pequeña decide a dónde van:
 
 ```python
 class SalidaSimulador:      # publica en rt/wirelesscontroller
-class SalidaRobot:          # llama a Go2Controller (Sport Mode)
+class SalidaRobot:          # llama a SportClient (Sport Mode)
 ```
 
 Ver `usecases/uc04_person_following/deploy/follow_person.py`.
@@ -108,14 +113,9 @@ from go2core.control.go2_controller import Go2Controller   # Sport Mode
 
 ## Cuidado con `Go2Controller` en modo real
 
-`src/go2core/control/go2_controller.py` viene del workspace WSL2, donde el
-simulador era `play_dds.py`. Publica en `rt/wirelesscontroller`.
+Comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. Por eso los ejemplos usan `SportClient` directamente, con la secuencia completa. **PENDIENTE** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. (En el código, `Go2Controller` en `mode="real"` sí llama a `SportClient`; solo `mode="sim"` publica en `rt/wirelesscontroller`.)
 
-Eso funciona en simulacion, pero **el robot fisico NO escucha ese topic desde
-fuera**: lo publica el mando. Los comandos salen, nadie los recibe, y el robot
-se queda quieto sin ningun error.
-
-Para mover el robot real hay que llamar a `SportClient` directamente:
+Para mover el robot real, llama a `SportClient` directamente:
 
 ```python
 from unitree_sdk2py.go2.sport.sport_client import SportClient
@@ -127,3 +127,13 @@ sport.StopMove()
 ```
 
 Ver `tools/teleop_real.py` y `SalidaRobot` en uc04.
+
+## Umbral mínimo de velocidad: sim frente a real
+
+Sport Mode ignora las órdenes por debajo de ~0.2 m/s. La plantilla
+(`uc00_plantilla`) sube las órdenes pequeñas a ese mínimo **solo en el robot
+real**: la política RL de la simulación sí responde a órdenes pequeñas, y
+forzar el mínimo ahí falsearía la comparación.
+
+**A revisar:** uc04 (`ControlSeguimiento`) aplica el umbral **siempre**, también
+en simulación. Debería alinearse con la plantilla.
