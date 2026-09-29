@@ -38,8 +38,9 @@ SEGURIDAD
     - Ctrl-C envía velocidad cero antes de salir
 
 Uso:
-    # Terminal 1: simulador
-    ./go2 sim up
+    # Terminal 1: simulador (Linux, dentro de ./go2 dev shell)
+    cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+    # Windows y Mac: docker compose --profile sim up (navegador, lento)
 
     # Terminal 2: la política de locomoción escuchando comandos
     python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --duration 600

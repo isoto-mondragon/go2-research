@@ -30,9 +30,16 @@ El control lo compensa con zona muerta amplia y topes de velocidad.
 
 Tres terminales, todas dentro del contenedor.
 
+En Linux (recomendado, va fluido) entra con `./go2 dev shell` en cada terminal
+y abre el simulador en una ventana nativa con la GPU. En Windows y Mac se usa
+el navegador (`docker compose --profile sim up`, http://localhost:6080/vnc.html
+y `docker compose --profile sim exec shell bash` para las demás terminales): va
+lento y no tiene arreglo, porque Docker Desktop no accede a la tarjeta gráfica.
+En Linux el navegador satura la CPU (406 %), no lo uses.
+
 ```bash
-# 1. Simulador
-./go2 sim up
+# 1. Simulador (Linux: dentro de ./go2 dev shell)
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
 
 # 2. Locomoción escuchando comandos
 python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --duration 600

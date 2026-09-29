@@ -653,6 +653,7 @@ Cerrar todo: `exit` en cada terminal de la caja, `Ctrl + C` donde corra algo.
 | `error gathering device information` | Pide un dispositivo `/dev/video*` que no existe | Igual: `python3 tools/gen_linux_override.py --write` |
 | `cannot connect to X server` / `Can't open display` / no se abre ninguna ventana | La caja no tiene permiso para abrir ventanas | 🖥️ `xhost +local:docker` y vuelve a entrar en la caja |
 | el navegador no muestra el simulador | El simulador no ha terminado de arrancar o el puerto está ocupado | Espera a `escritorio virtual listo`. Si sigue, `docker compose --profile sim down` y otra vez `up` |
+| El simulador va lentísimo en Linux | Estás usando el navegador (`--profile sim up`) | Usa `./go2 dev shell` y lanza el simulador dentro (3.1) |
 | el simulador va muy lento (Windows/Mac) | Dibuja en 3D con el procesador | No tiene arreglo en Windows y Mac. Es normal y no afecta al control |
 | `python3 tools/doctor.py` dice `no tiene cable conectado` | La interfaz está apagada porque no hay cable | Sin robot no es un problema. Con robot: revisa cable y que esté encendido |
 | `el robot no responde` en `probe` o `doctor` | Robot aún arrancando, cable, o red mal configurada | Espera 2 minutos, revisa el cable, repite `./env/go2_net.sh up` |

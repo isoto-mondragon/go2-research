@@ -13,8 +13,24 @@ al robot físico siguiéndote con su cámara.
 git clone git@github.com:isoto-mondragon/go2-research.git
 cd go2-research
 docker compose --profile sim build     # una vez, 20-40 min
-docker compose --profile sim up        # navegador: localhost:6080/vnc.html
 ```
+
+Arrancar el simulador:
+
+- **Linux (recomendado, va fluido)**: ventana nativa con la GPU.
+  ```bash
+  ./go2 dev shell
+  # y dentro del contenedor:
+  cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+  ```
+- **Windows y Mac**: navegador. Va lento y no tiene arreglo: Docker Desktop no
+  puede usar la tarjeta gráfica y el 3D se dibuja por software.
+  ```bash
+  docker compose --profile sim up        # navegador: localhost:6080/vnc.html
+  ```
+
+En Linux el navegador satura la CPU (406 %) y el simulador va a trompicones:
+no lo uses.
 
 **Vas a desarrollar**: [`docs/GUIA_COMPLETA.md`](docs/GUIA_COMPLETA.md)
 

@@ -77,6 +77,15 @@ Debe aparecer `go2-workspace 1.0` con unos 6.3 GB.
 
 ## 4. Arrancar el simulador
 
+**Linux (recomendado, va fluido)**, ventana nativa con la GPU:
+
+```bash
+./go2 dev shell
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+```
+
+**Windows y Mac** (navegador):
+
 ```bash
 docker compose --profile sim up
 ```
@@ -89,8 +98,10 @@ Cuando veas `escritorio virtual listo`, abre en el navegador:
 
 Verás la ventana de MuJoCo con el perro tumbado.
 
-> El visor va lento al girar la cámara o hacer zoom: dibuja por software. **No
-> afecta a la simulación**, que corre aparte y a velocidad normal.
+> **Va lento y no tiene arreglo:** Docker Desktop no puede usar la tarjeta
+> gráfica y el visor dibuja por software. **No afecta a la simulación**, que
+> corre aparte y a velocidad normal. En Linux no uses el navegador (satura la
+> CPU al 406 %).
 
 ---
 
@@ -100,7 +111,7 @@ Abre una **terminal nueva** (la anterior está ocupada con el simulador):
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y Mac: docker compose --profile sim exec shell bash
 ```
 
 El prompt cambia a algo como `root@a1b2c3:/workspace#`. **Ya estás dentro del
@@ -126,7 +137,7 @@ Necesitas **tres terminales**: simulador, política y teclado.
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y Mac: docker compose --profile sim exec shell bash
 python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --duration 300
 ```
 
@@ -134,7 +145,7 @@ python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --dura
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y Mac: docker compose --profile sim exec shell bash
 python3 tools/teleop.py --mode sim
 ```
 
@@ -199,6 +210,9 @@ verdad, no solo cerrar la terminal.
 
 **`docker compose build` termina al instante sin hacer nada**
 Falta el perfil. Tiene que ser `docker compose --profile sim build`.
+
+**El simulador va lentísimo en Linux**
+Estás usando el navegador: usa `./go2 dev shell`.
 
 **El navegador no muestra nada en el puerto 6080**
 Comprueba que el paso 4 sigue corriendo y que dijo `escritorio virtual listo`.

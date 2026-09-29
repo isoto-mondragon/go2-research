@@ -272,26 +272,37 @@ fuente. Solo es necesario si modificas el `Dockerfile`.
 
 ### Arrancar el simulador
 
-**En Linux**, usa el envoltorio `./go2`: detecta tu tarjeta gráfica y tu cámara
-y las pasa al contenedor. `docker compose` a secas no lo hace.
+**En Linux (recomendado, va fluido)**: ventana nativa con la GPU de tu
+ordenador, sin navegador ni VNC. El envoltorio `./go2` detecta tu tarjeta
+gráfica y tu cámara y las pasa al contenedor.
 
 ```bash
-./go2 sim up
+./go2 dev shell
 ```
 
-**En Windows y macOS**:
+Y dentro del contenedor:
+
+```bash
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+```
+
+Se abre una ventana en el escritorio con el robot tumbado en el suelo. Esta
+terminal se queda ocupada. **Déjala abierta.**
+
+**En Windows y macOS** (navegador):
 
 ```bash
 docker compose --profile sim up
 ```
 
-Esta terminal se queda ocupada. **Déjala abierta.**
-
 Cuando veas `escritorio virtual listo`, abre en el navegador:
 
 **http://localhost:6080/vnc.html** → botón **Connect**
 
-Verás la ventana de MuJoCo con el robot tumbado en el suelo.
+> **Va lento y no tiene arreglo.** Docker Desktop no puede acceder a la tarjeta
+> gráfica, así que el 3D se dibuja por software y se transmite por VNC. No
+> afecta a la física ni al control. En Linux **no** uses el navegador: satura
+> la CPU (406 %).
 
 ### Poner el robot de pie
 
@@ -299,7 +310,7 @@ Abre una **terminal nueva**:
 
 ```bash
 cd go2-research
-./go2 sim shell          # en Linux
+./go2 dev shell                                   # Linux
 # docker compose --profile sim exec shell bash    # Windows y macOS
 ```
 
@@ -309,7 +320,7 @@ El prompt cambia a `go2@a1b2c3:/workspace$`. **Ya estás dentro.**
 python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --duration 60
 ```
 
-Mira el navegador: el robot se levanta y se mantiene de pie.
+Mira la ventana del simulador (o el navegador en Windows y macOS): el robot se levanta y se mantiene de pie.
 
 ### Conducirlo con el teclado
 
@@ -321,7 +332,7 @@ Necesitas **tres terminales**.
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y macOS: docker compose --profile sim exec shell bash
 python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --duration 300
 ```
 
@@ -329,7 +340,7 @@ python3 usecases/uc01_locomotion/deploy/run_policy.py --mode sim --teleop --dura
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y macOS: docker compose --profile sim exec shell bash
 python3 tools/teleop.py --mode sim
 ```
 
@@ -649,6 +660,7 @@ volumen montado quedarán con dueño `root`. Si te molesta:
 | `permission denied ... docker.sock` | en Linux, reinicia tras `usermod -aG docker $USER` |
 | `docker compose build` acaba al instante | falta `--profile sim` |
 | `ModuleNotFoundError: numpy` | estás en tu ordenador, no en el contenedor |
+| El simulador va lentísimo en Linux | estás usando el navegador, usa `./go2 dev shell` |
 | El navegador no muestra nada en 6080 | comprueba que `up` sigue corriendo y dijo `escritorio virtual listo`; recarga y pulsa Connect |
 | El robot se queda tumbado | cada ejecución termina amortiguando; es normal. Reinicia el simulador |
 | Va muy lento | sección 8 |

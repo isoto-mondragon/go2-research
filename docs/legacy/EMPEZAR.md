@@ -148,6 +148,23 @@ aparecer el cursor.
 
 ## Paso 6. Arrancar el simulador
 
+### Linux (recomendado, va fluido)
+
+```bash
+./go2 dev shell
+```
+
+y dentro de la caja:
+
+```bash
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+```
+
+Se abre una ventana en el escritorio, con la GPU de tu ordenador. Salta a los
+problemas típicos si no se abre.
+
+### Windows y Mac (navegador)
+
 ```bash
 docker compose --profile sim up
 ```
@@ -165,8 +182,9 @@ Púlsalo.
 
 **Ya está:** estás viendo el robot tumbado en un suelo gris.
 
-> Si mueves la cámara con el ratón notarás que va lento. Es normal y no afecta
-> a nada importante.
+> **Va lento y no tiene arreglo:** Docker Desktop no puede usar la tarjeta
+> gráfica y el 3D se dibuja por software. No afecta a nada importante. En Linux
+> no uses el navegador (satura la CPU al 406 %): usa `./go2 dev shell`.
 
 ---
 
@@ -182,9 +200,18 @@ Ahora vamos a poner el robot de pie. Para eso hay que **entrar en la caja**.
 
 Y escribe:
 
+En **Linux**:
+
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell
+```
+
+En **Windows y Mac**:
+
+```bash
+cd go2-research
+./go2 dev shell        # Linux; en Windows y Mac: docker compose --profile sim exec shell bash
 ```
 
 **Mira el principio de la línea.** Ha cambiado:
@@ -233,7 +260,7 @@ Espera a ver un mensaje que dice `politica a 50 Hz`.
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y Mac: docker compose --profile sim exec shell bash
 python3 tools/teleop.py --mode sim
 ```
 
@@ -294,7 +321,7 @@ Lo único que hay que hacer es volver a ejecutar el programa dentro de la caja.
 
 ```bash
 cd go2-research
-docker compose --profile sim exec shell bash
+./go2 dev shell        # Linux; en Windows y Mac: docker compose --profile sim exec shell bash
 ```
 
 Y ya puedes escribir comandos que empiecen por `python3`.
@@ -331,6 +358,9 @@ No has entrado en la caja. Vuelve al paso 7.
 
 **"El robot se queda tumbado y no se levanta"**
 Cada programa termina dejando al robot tumbado. Es normal. Vuelve a ejecutarlo.
+
+**"El simulador va lentísimo en Linux"**
+Estás usando el navegador: usa `./go2 dev shell`.
 
 **"Todo va lentísimo"**
 En Windows y Mac, sube los recursos de Docker Desktop (paso 1). Cierra otros

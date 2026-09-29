@@ -98,9 +98,20 @@ una patada. Antes de bajar a `LowCmd` hay que liberar el modo con
 | `real` | robot físico | host | ninguna | **solo Linux** |
 | `dev` | desarrollo en Linux | host | X11 nativo | sí |
 
+**En Linux, para ver el simulador usa `./go2 dev shell` (recomendado, va
+fluido: ventana nativa con la GPU).** El perfil `sim` con navegador es para
+Windows y Mac; en Linux satura la CPU (406 %) y va a trompicones.
+
 ```bash
+# Linux (recomendado): terminal en el contenedor, y dentro el simulador
+./go2 dev shell
+cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+# terminales adicionales en Linux: otra vez ./go2 dev shell
+
+# Windows y Mac: navegador (lento, sin arreglo: Docker Desktop no accede a la GPU)
 docker compose --profile sim  up                  # simulador
 docker compose --profile sim  exec shell bash     # terminal
+
 docker compose --profile real run --rm real       # robot
 docker compose --profile dev  run --rm dev        # desarrollo
 ```
@@ -400,6 +411,7 @@ dependen de mjlab, que no está en la imagen. No se usan en despliegue.
 | El robot se abre de patas al levantarse | rampa demasiado lenta; usa `--stand-mode direct` |
 | `permission denied ... docker.sock` | falta reiniciar tras `usermod -aG docker` |
 | `build` termina al instante | falta `--profile sim` |
+| El simulador va lentísimo en Linux | estás usando el navegador, usa `./go2 dev shell` |
 
 Herramientas de diagnóstico:
 
