@@ -1,8 +1,10 @@
 # Chuleta de la API
 
-Para cada cosa que puedes hacer, la línea exacta. Sin teoría. Si quieres un
-punto de partida completo, copia [`usecases/uc00_plantilla/`](../usecases/uc00_plantilla/README.md):
-ya trae todo esto resuelto.
+Para cada cosa que puedes hacer, la línea exacta. Sin teoría.
+
+> **Si solo quieres hacer un caso de uso, no leas esto:** copia
+> [`usecases/uc00_plantilla`](../usecases/uc00_plantilla/LEEME.md) y abre `mi_caso.py`.
+> Este documento es para entender cómo funciona por dentro.
 
 Todo se ejecuta **dentro de la caja** (`./go2 dev shell`). Al principio de tu
 script:
@@ -33,7 +35,7 @@ ChannelSubscriber("rt/lowstate", LowState_).Init(lambda m: ultimo.update(m=m), 1
 m = ultimo["m"]
 ```
 
-La clase `Telemetria` de `uc00_plantilla/deploy/main.py` ya envuelve esto con
+La clase `Telemetria` de `uc00_plantilla/deploy/main.py` (solo para copiarla, no para editarla) ya envuelve esto con
 un método por lectura; cópiala.
 
 Una vez tienes `m`:

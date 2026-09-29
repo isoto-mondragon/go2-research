@@ -32,7 +32,7 @@ Arrancar el simulador:
 En Linux el navegador satura la CPU (406 %) y el simulador va a trompicones:
 no lo uses.
 
-**Vas a desarrollar**: copia [`usecases/uc00_plantilla/`](usecases/uc00_plantilla/README.md) (funciona sin tocar nada) y usa la chuleta [`docs/API.md`](docs/API.md). Más contexto: [`docs/GUIA_COMPLETA.md`](docs/GUIA_COMPLETA.md).
+**Vas a hacer tu propio caso de uso**: copia [`usecases/uc00_plantilla`](usecases/uc00_plantilla/LEEME.md) y abre `mi_caso.py`. Es lo único que tocas.
 
 **Vas a tocar el robot físico**: [`docs/SAFETY.md`](docs/SAFETY.md), obligatorio.
 

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
+# =============================================================================
+# ESTE FICHERO NO SE TOCA.
+# Tu codigo va en mi_caso.py, en la carpeta de arriba (uc00_plantilla/).
+# =============================================================================
 """usecases/uc00_plantilla/deploy/main.py
 
-Plantilla de caso de uso. Copiala, renombrala y rellena `decidir()`.
+La maquinaria de la plantilla. Lee `decidir()` de ../mi_caso.py y se ocupa de
+todo lo demas.
 
     telemetria ──► decidir() ──► limitador ──► (vx, vy, wz) ──► robot
-                   TU LOGICA     tope + rampa                   sim o real
-
-Arranca tal cual y hace algo minimo pero real: lee la telemetria, la imprime
-y manda velocidad cero. Cambia `decidir()` y ya es tu caso de uso.
+                   mi_caso.py    tope + rampa                   sim o real
 
 DOS DESTINOS, UN SOLO CODIGO
 ----------------------------
@@ -55,7 +57,7 @@ import yaml
 # `paths` deduce la raiz del repositorio desde su propia ubicacion: funciona
 # igual dentro del contenedor (/workspace) que en un clon cualquiera.
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
-# Solo hace falta si usas la camara del robot (tools/robot_camera.py).
+# Para que mi_caso.py pueda importar robot_camera (ejemplo 4).
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools"))
 
 from go2core import paths                     # noqa: E402
@@ -63,42 +65,13 @@ from go2core.control import contract as ct    # noqa: E402
 from go2core.logging.run import create_run    # noqa: E402
 
 UC = Path(__file__).resolve().parents[1]
+# mi_caso.py vive en la carpeta del caso de uso, no en deploy/.
+sys.path.insert(0, str(UC))
+import mi_caso  # noqa: E402
+
 # El nombre de la carpeta es el nombre del caso de uso en experiments/, asi
 # que al renombrar la plantilla no hay que tocar nada aqui.
 USECASE = UC.name
-
-
-# ===========================================================================
-# TU LOGICA
-# ===========================================================================
-def decidir(tel: "Telemetria | None", t: float, cfg: dict) -> tuple[float, float, float]:
-    """Devuelve la velocidad deseada (vx m/s, vy m/s, wz rad/s).
-
-    Args:
-        tel: ultima telemetria, o None si no llega (solo posible con --dry-run).
-             Campos: tel.inclinacion(), tel.gyro(), tel.q(), tel.dq(),
-             tel.tau(), tel.temp_max(), tel.foot_force(), tel.bateria_pct().
-        t: segundos desde que arranco el bucle.
-        cfg: contenido entero de configs/params.yaml.
-
-    No hace falta preocuparse de limites ni de rampas: el limitador las aplica
-    despues. Signos: vx > 0 adelante, vy > 0 izquierda, wz > 0 giro a la
-    izquierda.
-    """
-    # =======================================================================
-    # AQUI VA TU LOGICA
-    # =======================================================================
-    # TODO: sustituye esto. Ejemplo, avanzar dos segundos y parar:
-    #     if t < 2.0:
-    #         return 0.3, 0.0, 0.0
-    #
-    # TODO: si necesitas la camara del robot (1920x1080, unos 24 fps):
-    #     from robot_camera import CamaraRobot
-    #     cam = CamaraRobot(iface, domain, init_dds=False)   # crearla ANTES del bucle
-    #     imagen = cam.leer()                                 # BGR, o None si falla
-    #
-    # TODO: parametros propios: cfg["mi_caso"]["ejemplo"]
-    return 0.0, 0.0, 0.0
 
 
 # ===========================================================================
@@ -166,6 +139,24 @@ class Telemetria:
     def bateria_pct(self) -> float:
         bms = getattr(self.msg, "bms_state", None)
         return float(getattr(bms, "soc", 0) or 0) if bms else 0.0
+
+
+class TelemetriaNula:
+    """Lo que ve decidir() cuando no llega telemetria (solo con --dry-run).
+
+    Devuelve ceros en vez de None para que quien escribe mi_caso.py no tenga
+    que comprobar nada: un caso de uso que funciona con telemetria real
+    tambien arranca en una comprobacion sin simulador.
+    """
+
+    def q(self): return np.zeros(12, np.float32)
+    def dq(self): return np.zeros(12, np.float32)
+    def tau(self): return np.zeros(12, np.float32)
+    def gyro(self): return np.zeros(3, np.float32)
+    def inclinacion(self): return 0.0
+    def temp_max(self): return 0.0
+    def foot_force(self): return np.zeros(4, np.float32)
+    def bateria_pct(self): return 0.0
 
 
 # ===========================================================================
@@ -366,6 +357,12 @@ def main() -> int:
 
     limitador = Limitador(ctl, c["commands"], real)
 
+    # Gancho opcional: si mi_caso.py define preparar(), se llama una vez antes
+    # del bucle. Sirve para abrir la camara o cargar un modelo, que es lento y
+    # no debe hacerse en cada paso. Solo lo usa el ejemplo 4.
+    if hasattr(mi_caso, "preparar"):
+        mi_caso.preparar(args.mode, iface, domain)
+
     run_dir = None
     if args.log:
         run_dir = create_run(USECASE, args.tag, config={
@@ -406,7 +403,7 @@ def main() -> int:
                     break
 
             # --- decidir, limitar, enviar ---
-            deseada = decidir(tel, t, cfg)
+            deseada = mi_caso.decidir(tel or TelemetriaNula(), t)
             vx, vy, wz = limitador.paso(deseada, dt)
             if salida is not None:
                 salida.enviar(vx, vy, wz)

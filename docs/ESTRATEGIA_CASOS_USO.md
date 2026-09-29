@@ -1,9 +1,9 @@
 # Cómo desarrollar un caso de uso
 
-> **Empieza copiando [`usecases/uc00_plantilla/`](../usecases/uc00_plantilla/README.md).**
-> Arranca tal cual y ya trae los argumentos, las dos salidas (simulador y robot
-> real), los límites y el registro. Las líneas exactas de cada operación están
-> en [`docs/API.md`](API.md). Lo que sigue explica el porqué.
+> **Si solo quieres hacer un caso de uso, no leas esto:** copia
+> [`usecases/uc00_plantilla`](../usecases/uc00_plantilla/LEEME.md) y abre `mi_caso.py`.
+> Este documento es para entender cómo funciona por dentro.
+
 
 ## Lo primero: no hace falta entrenar nada
 

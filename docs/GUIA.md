@@ -676,9 +676,8 @@ también funciona y comprueba lo que corresponde dentro.
   variables, herramientas y límites conocidos.
 - [`GUIA_COMPLETA.md`](GUIA_COMPLETA.md): si vas a desarrollar tu propio caso
   de uso.
-- [`usecases/uc00_plantilla/`](../usecases/uc00_plantilla/README.md): si vas
-  a hacer tu propio caso de uso, **empieza copiando esta plantilla**. Funciona
-  sin tocar nada. Las líneas exactas de la API están en [`API.md`](API.md).
+- **Tu propio caso de uso:** copia [`usecases/uc00_plantilla`](../usecases/uc00_plantilla/LEEME.md)
+  y abre `mi_caso.py`. Es lo único que tocas; funciona sin cambiar nada.
 - [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md): cómo desarrollar un
   caso de uso nuevo y qué transfiere del simulador al robot real.
 - [`SAFETY.md`](SAFETY.md): protocolo de seguridad completo del grupo. Léelo

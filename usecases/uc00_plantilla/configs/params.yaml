@@ -1,5 +1,5 @@
-# uc00 - parametros de ejemplo. Copia este fichero con tu caso de uso y
-# cambia solo lo que necesites: deploy/main.py lo carga con --config.
+# uc00 - limites y seguridad. Normalmente no hace falta tocarlo: son topes
+# conservadores para las primeras pruebas. deploy/main.py lo carga con --config.
 
 control:
   # Frecuencia del bucle. 20 Hz sobra para dar ordenes de velocidad; subirla
@@ -35,9 +35,3 @@ seguridad:
   # congela no sabes en que estado esta el robot, y seguir mandando ordenes
   # a ciegas es peor que parar.
   telemetria_max_edad_s: 0.5
-
-# Lo que quieras: tu logica lo lee de cfg["mi_caso"]. Se guarda entero en el
-# manifest.json de cada ejecucion, asi que queda registrado con que
-# parametros se obtuvo cada resultado.
-mi_caso:
-  ejemplo: 1.0
