@@ -1,53 +1,42 @@
 # docker-compose.linux.yml
 #
-# Override SOLO PARA LINUX.
+# GENERADO POR tools/gen_linux_override.py el 2026-09-29
+# NO editar a mano: se regenera con
+#     python3 tools/gen_linux_override.py --write
 #
-# NOTA IMPORTANTE: compartir /dev/dri con el perfil `sim` NO aporta nada.
-# Ni Xvfb ni Xvnc soportan DRI, asi que mesa cae a llvmpipe aunque el
-# dispositivo este accesible. Medido en el portatil de desarrollo:
+# Comparte con el contenedor la GPU y la webcam de ESTA maquina. Los valores
+# dependen del ordenador, asi que cada usuario de Linux debe regenerarlo.
 #
-#     con /dev/dri   : 1067 FPS (glxgears), Accelerated: no
-#     forzando sw    : 1166 FPS
+# Los grupos van por GID NUMERICO, no por nombre: el nombre se resolveria en el
+# /etc/group del CONTENEDOR, que es un Ubuntu minimo y no tiene `render`.
 #
-# La unica via a GL por hardware es el perfil `dev`, que usa el servidor X del
-# anfitrion y por tanto su GPU, sin VNC de por medio.
+# La camara del ROBOT no necesita nada de esto: llega por red.
 #
-# GID numericos, no nombres: `group_add: [render]` falla con "Unable to find
-# group render" porque el nombre se resuelve en el /etc/group del CONTENEDOR.
-# En otro ordenador pueden ser distintos: comprobar con
-#     getent group render video
+# Detectado en esta maquina:
+#   GPU     card1, card2, renderD128, renderD129
+#   webcam  video0, video1
+#   grupos  44 (video), 990 (render)
 
 services:
 
-  # La webcam del anfitrion, para los casos de uso de percepcion (uc04).
-  # /dev/video* no existe en Windows ni macOS, por eso va en el override de
-  # Linux y no en el compose base.
   shell:
     devices:
       - /dev/video0:/dev/video0
       - /dev/video1:/dev/video1
     group_add:
-      - "44"           # video
+      - "44"          # video
+      - "990"          # render
 
-  # El perfil `real` tambien necesita la camara: uc04 combina percepcion con
-  # el robot fisico. Sin esto, follow_person.py --mode real no encuentra
-  # /dev/video0 aunque el anfitrion la tenga.
+
   real:
     devices:
       - /dev/video0:/dev/video0
       - /dev/video1:/dev/video1
       - /dev/dri:/dev/dri
     group_add:
-      - "44"           # video
+      - "44"          # video
       - "990"          # render
-    # X11 del anfitrion: sin esto no se puede usar --show con el robot real, y
-    # sin ver lo que detecta YOLO se depura a ciegas.
-    environment:
-      GO2_GUI: x11
-      DISPLAY: ${DISPLAY:-:0}
-    volumes:
-      - .:/workspace
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
 
   dev:
     devices:
@@ -55,5 +44,6 @@ services:
       - /dev/video0:/dev/video0
       - /dev/video1:/dev/video1
     group_add:
+      - "44"          # video
       - "990"          # render
-      - "44"           # video
+

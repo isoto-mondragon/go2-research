@@ -1,0 +1,59 @@
+# docker-compose.linux.yml
+#
+# Override SOLO PARA LINUX.
+#
+# NOTA IMPORTANTE: compartir /dev/dri con el perfil `sim` NO aporta nada.
+# Ni Xvfb ni Xvnc soportan DRI, asi que mesa cae a llvmpipe aunque el
+# dispositivo este accesible. Medido en el portatil de desarrollo:
+#
+#     con /dev/dri   : 1067 FPS (glxgears), Accelerated: no
+#     forzando sw    : 1166 FPS
+#
+# La unica via a GL por hardware es el perfil `dev`, que usa el servidor X del
+# anfitrion y por tanto su GPU, sin VNC de por medio.
+#
+# GID numericos, no nombres: `group_add: [render]` falla con "Unable to find
+# group render" porque el nombre se resuelve en el /etc/group del CONTENEDOR.
+# En otro ordenador pueden ser distintos: comprobar con
+#     getent group render video
+
+services:
+
+  # La webcam del anfitrion, para los casos de uso de percepcion (uc04).
+  # /dev/video* no existe en Windows ni macOS, por eso va en el override de
+  # Linux y no en el compose base.
+  shell:
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    group_add:
+      - "44"           # video
+
+  # El perfil `real` tambien necesita la camara: uc04 combina percepcion con
+  # el robot fisico. Sin esto, follow_person.py --mode real no encuentra
+  # /dev/video0 aunque el anfitrion la tenga.
+  real:
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"           # video
+      - "990"          # render
+    # X11 del anfitrion: sin esto no se puede usar --show con el robot real, y
+    # sin ver lo que detecta YOLO se depura a ciegas.
+    environment:
+      GO2_GUI: x11
+      DISPLAY: ${DISPLAY:-:0}
+    volumes:
+      - .:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+  dev:
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    group_add:
+      - "990"          # render
+      - "44"           # video
