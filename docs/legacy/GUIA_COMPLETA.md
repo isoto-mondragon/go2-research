@@ -1,7 +1,9 @@
 # Guía completa
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/ESTRATEGIA_CASOS_USO.md` (cómo desarrollar), `docs/API.md` (referencia) y `docs/DOCKER.md` (el contenedor). Ver `docs/legacy/README.md`.
+
 Para quien vaya a desarrollar sobre esta infraestructura. Si solo quieres
-arrancar el simulador y mover el perro, con [`GUIA.md`](GUIA.md)
+arrancar el simulador y mover el perro, con [`GUIA.md`](../GUIA.md)
 tienes bastante.
 
 Grupo DANZ, Escuela Politécnica Superior, Mondragon Unibertsitatea.
@@ -79,7 +81,7 @@ sport.StandUp(); time.sleep(3); sport.BalanceStand(); time.sleep(2)
 sport.Move(0.3, 0.0, 0.0)      # repetir a ~20 Hz; sport.StopMove() al terminar
 ```
 
-Comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. Detalle en [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md) y [`API.md`](API.md).
+Comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. Detalle en [`ESTRATEGIA_CASOS_USO.md`](../ESTRATEGIA_CASOS_USO.md) y [`API.md`](../API.md).
 
 **LowCmd (bajo nivel).** Control articular directo: posición, ganancias y par
 por motor. Necesario para desplegar políticas RL propias.
@@ -91,7 +93,7 @@ python3 usecases/uc01_locomotion/deploy/run_policy.py --mode real --iface enp3s0
 **No se pueden usar los dos a la vez.** Si publicas `LowCmd` con Sport Mode
 activo, dos controladores pelean por los mismos motores y el robot puede dar
 una patada. Antes de bajar a `LowCmd` hay que liberar el modo con
-`MotionSwitcherClient.ReleaseMode()`. Está en [`SAFETY.md`](SAFETY.md).
+`MotionSwitcherClient.ReleaseMode()`. Está en [`SAFETY.md`](../SAFETY.md).
 
 ---
 
@@ -259,7 +261,7 @@ print(ll.joint_tau(), ll.tilt_rad())
 
 **Cuidado:** `LowLevel.start()` publica LowCmd, y con Sport Mode activo eso
 pelea con el controlador del fabricante. Para solo leer, usa un suscriptor de
-`rt/lowstate` (ver [`API.md`](API.md), sección 1). Sobre `Go2Controller`: comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`.
+`rt/lowstate` (ver [`API.md`](../API.md), sección 1). Sobre `Go2Controller`: comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`.
 
 `lowstate` sigue publicando con Sport Mode activo, así que tienes par por motor,
 temperatura, fuerza en los pies y batería mientras el robot camina solo.
@@ -342,7 +344,7 @@ distingue con los datos actuales. Detalle en
 
 ### Antes de nada
 
-Lee [`SAFETY.md`](SAFETY.md). No es burocracia: en un grupo de investigación ese
+Lee [`SAFETY.md`](../SAFETY.md). No es burocracia: en un grupo de investigación ese
 documento vale tanto como el código.
 
 Resumen: radio de 2 m libre, batería >50%, mando físico **en la mano**, app
@@ -451,10 +453,10 @@ uc01, locomoción RL, está cerrado con un resultado propio y en pausa.
 
 Documentación relacionada:
 
-- [`GUIA.md`](GUIA.md) — arrancar en 45 minutos
-- [`DOCKER.md`](DOCKER.md) — detalles del contenedor
-- [`SAFETY.md`](SAFETY.md) — obligatorio antes del robot
+- [`GUIA.md`](../GUIA.md) — arrancar en 45 minutos
+- [`DOCKER.md`](../DOCKER.md) — detalles del contenedor
+- [`SAFETY.md`](../SAFETY.md) — obligatorio antes del robot
 - [`USAGE_GUIDE.md`](USAGE_GUIDE.md) — notas de uso diario
 - `usecases/uc01_locomotion/train/ENTORNO_FIJADO.md` — entorno de entrenamiento
 - `results/tables/sweep_progress.md` — resultados experimentales
-- [`legacy/`](legacy/) — documentación del montaje original en WSL2, **no seguir**
+- [`legacy/`](./) — documentación del montaje original en WSL2, **no seguir**

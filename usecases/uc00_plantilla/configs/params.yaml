@@ -35,3 +35,10 @@ seguridad:
   # congela no sabes en que estado esta el robot, y seguir mandando ordenes
   # a ciegas es peor que parar.
   telemetria_max_edad_s: 0.5
+
+# Parametros propios de tu caso de uso. Llegan a mi_caso.py como el diccionario
+# PARAMS: PARAMS["velocidad"]. Se guardan enteros en el manifest.json de cada
+# ejecucion, asi que queda registrado con que valores se obtuvo cada resultado.
+mi_caso:
+  velocidad: 0.3      # m/s
+  segundos: 2.0

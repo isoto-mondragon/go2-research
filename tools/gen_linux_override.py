@@ -26,6 +26,9 @@ No necesita /dev/video. La imagen del Go2 llega por red, igual que el resto de
 sensores. Los dispositivos de video solo hacen falta para la webcam del
 portatil.
 
+Solo aplica en Linux. En Windows y macOS lo dice y sale sin error. Usa solo la
+biblioteca estandar.
+
 Uso:
     python3 tools/gen_linux_override.py            # ver que detecta
     python3 tools/gen_linux_override.py --write    # escribir el fichero
@@ -34,7 +37,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import grp
 import platform
 import sys
 from datetime import date
@@ -44,6 +46,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from go2core import paths  # noqa: E402
 
 V, R, G, Y, Z = "\033[34m", "\033[31m", "\033[32m", "\033[33m", "\033[0m"
+
+
+def nombre_de_grupo(gid: int) -> str:
+    import grp   # solo existe en Unix; aqui ya se ha comprobado que es Linux
+    try:
+        return grp.getgrgid(gid).gr_name
+    except KeyError:
+        return "sin nombre"
 
 
 def gids_de(ruta: Path) -> dict[int, str]:
@@ -56,11 +66,7 @@ def gids_de(ruta: Path) -> dict[int, str]:
             continue
         try:
             g = d.stat().st_gid
-            try:
-                nombre = grp.getgrgid(g).gr_name
-            except KeyError:
-                nombre = "sin nombre"
-            encontrados[g] = nombre
+            encontrados[g] = nombre_de_grupo(g)
         except OSError:
             pass
     return encontrados
@@ -72,12 +78,15 @@ def main() -> int:
     p.add_argument("--write", action="store_true")
     args = p.parse_args()
 
-    print(f"\n{V}=== Configuracion de esta maquina ==={Z}\n")
-
+    # Lo primero: en Windows y macOS no existe grp ni /dev/dri, y no hay nada
+    # que generar. Salir limpio, sin traza, con el motivo.
     if platform.system() != "Linux":
-        print(f"{Y}Este fichero solo se usa en Linux. En Windows y macOS,")
-        print(f"docker compose se usa sin el override.{Z}")
+        print("Esto solo aplica en Linux: comparte con el contenedor la GPU y la")
+        print("webcam del anfitrion. En Windows y macOS no hay nada que hacer;")
+        print("docker compose se usa sin este fichero.")
         return 0
+
+    print(f"\n{V}=== Configuracion de esta maquina ==={Z}\n")
 
     # ---------------- GPU ----------------
     dri = Path("/dev/dri")
@@ -99,10 +108,7 @@ def main() -> int:
     for v in videos:
         try:
             g = v.stat().st_gid
-            try:
-                gids_video[g] = grp.getgrgid(g).gr_name
-            except KeyError:
-                gids_video[g] = "sin nombre"
+            gids_video[g] = nombre_de_grupo(g)
         except OSError:
             pass
 

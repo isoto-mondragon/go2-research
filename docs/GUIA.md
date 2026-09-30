@@ -1,5 +1,8 @@
 # Guía completa: del ordenador vacío al robot siguiéndote
 
+> **Para quién:** cualquiera, aunque nunca hayas usado Docker ni Linux.
+> **Cuándo:** es el primer documento que abres. Empieza aquí.
+
 Esta es la única guía que necesitas. Está pensada para quien **nunca ha usado
 Docker ni Linux**: puedes copiar y pegar cada comando sin entender qué hace.
 
@@ -13,8 +16,30 @@ Al terminar habrás pasado por cinco partes:
 | 4 | Conectar el robot de verdad | **solo Linux** |
 | 5 | Que el robot te siga con su cámara | **solo Linux** |
 
-Si tienes Windows o Mac, **haz las partes 1 y 3**. El robot físico no se puede
-conectar desde ahí (es una limitación de Docker Desktop, no del proyecto).
+### Dónde acaba el camino común y dónde empieza el de Linux
+
+| | Windows | Mac | Linux |
+|---|:-:|:-:|:-:|
+| Parte 1: instalar y descargar | sí | sí | sí |
+| Parte 2: ajustes del ordenador | **no** | **no** | sí |
+| Parte 3: el simulador | sí (visor lento) | sí (visor lento) | sí (visor fluido) |
+| Parte 4: conectar el robot | **no** | **no** | sí |
+| Parte 5: que el robot te siga | **no** | **no** | sí |
+
+**Si tienes Windows o Mac, la guía termina al final de la parte 3.** Las partes
+2, 4 y 5 usan comandos de Linux (`./env/go2_net.sh`, `ip`, `sudo`...) que no
+existen en tu ordenador, y el robot físico necesita acceso directo a la red,
+que Docker Desktop no da. Es una limitación de Docker Desktop, no del proyecto.
+
+Lo único que escribes **fuera** de la caja en Windows y Mac es:
+
+1. instalar Docker y Git,
+2. `git clone`,
+3. `docker compose --profile sim pull`,
+4. `docker compose --profile sim up`,
+5. `docker compose --profile sim exec shell bash` (para entrar en la caja).
+
+No necesitas instalar Python ni nada más. Todo lo demás se hace dentro.
 
 Cómo leerla: cada paso dice **qué escribir** y **qué tiene que pasar**. Si lo que
 ves no coincide con lo que dice la guía, **para** y mira la
@@ -30,7 +55,7 @@ caja. Por eso hay **dos lugares** donde puedes escribir comandos:
 
 | lugar | cómo lo reconoces | qué se hace aquí |
 |---|---|---|
-| **FUERA** de la caja (tu ordenador) | la línea empieza por `tunombre@tuordenador:~/go2-research$` | `git`, `docker`, `./go2`, `./env/...`, `tools/doctor.py` |
+| **FUERA** de la caja (tu ordenador) | la línea empieza por `tunombre@tuordenador:~/go2-research$` | `git` y `docker` (todos los sistemas); `./go2`, `./env/...` y `tools/doctor.py` (**solo Linux**) |
 | **DENTRO** de la caja | la línea empieza por `go2@` (o `root@`) seguido de letras y números | todo lo que empieza por `python3 tools/...` o `python3 usecases/...` |
 
 **Regla de oro:** los programas del robot (`python3 usecases/...`,
@@ -44,8 +69,10 @@ ModuleNotFoundError: No module named 'numpy'
 Ese error **no significa que falte instalar numpy**. Significa que estás fuera
 de la caja. Entra en ella (cada parte te dice cómo) y repite el comando.
 
-Excepción: `python3 tools/doctor.py` y `python3 tools/gen_linux_override.py`
-se ejecutan **fuera**. Cada vez que la guía te pida algo así, lo dirá.
+Excepción, **solo en Linux**: `python3 tools/doctor.py` y
+`python3 tools/gen_linux_override.py` se ejecutan **fuera** (Linux ya trae
+Python). En Windows y Mac no hace falta ninguno de los dos. Cada vez que la guía
+te pida algo así, lo dirá.
 
 A lo largo de la guía verás estas etiquetas:
 
@@ -82,11 +109,15 @@ escriben en **PowerShell**.
 Git viene con las herramientas de desarrollo: si escribes `git` y te ofrece
 instalarlas, acepta. Los comandos se escriben en la aplicación **Terminal**.
 
+> **Mac con chip Apple (M1, M2...):** la imagen del proyecto está construida
+> para procesadores Intel/AMD. Docker Desktop puede ejecutarla emulada, pero
+> **no lo hemos probado**. Si lo intentas, cuéntanos cómo va.
+
 Abre Docker Desktop y espera a que el icono deje de moverse antes de seguir.
 
-## 1.2 Comprobar que Docker funciona
+## 1.2 Comprobar que Docker funciona (opcional)
 
-🖥️ FUERA:
+Sirve para saber que Docker funciona antes de bajar 6 GB. 🖥️ FUERA:
 
 ```bash
 docker run --rm hello-world
@@ -244,10 +275,52 @@ Esta terminal se queda ocupada. Cuando veas una línea con
 Pulsa **Connect**. **Qué tiene que pasar:** ves el robot tumbado en un suelo
 gris.
 
-> **Aviso: va a ir lento.** Sobre todo al mover la cámara con el ratón. Es
-> normal: Docker Desktop en Windows y Mac no puede usar la tarjeta gráfica, y el
-> ordenador dibuja el 3D con el procesador. No tiene arreglo y no afecta a la
-> física ni al control. En Linux se evita usando la ventana nativa.
+> **Aviso: va a ir lento.** Sobre todo al mover la cámara con el ratón. Está
+> medido: la CPU del contenedor se satura al 406 % porque dibuja el 3D por
+> software y lo transmite por VNC. **Con Docker Desktop esto no tiene arreglo**:
+> no es un fallo del proyecto, es que Docker Desktop no da acceso a la tarjeta
+> gráfica. No afecta a la física ni al control: el robot se mueve igual de bien,
+> solo se ve peor. En Linux se evita usando la ventana nativa.
+>
+> Si en Windows 11 quieres probar una vía que podría ir fluida, mira la sección
+> siguiente. **Nadie la ha probado todavía.**
+
+### Windows: ventana nativa con WSL2 (⚠️ NO VERIFICADA)
+
+> **⚠️ NADIE HA PROBADO ESTO TODAVÍA.** No es el camino recomendado. El camino
+> recomendado en Windows es el navegador de arriba. Si lo intentas, **cuéntanos
+> qué ha pasado** (funcione o no): así podremos dejar aquí la respuesta.
+
+**La idea.** Windows 11 trae *WSLg*, que da aceleración gráfica a las
+aplicaciones Linux. Si en lugar de Docker Desktop usas Docker **dentro** de una
+Ubuntu de WSL2, el perfil `dev` (ventana nativa) podría funcionar con GPU,
+igual que en Linux.
+
+Pasos aproximados. En PowerShell:
+
+```powershell
+wsl --install -d Ubuntu-22.04
+```
+
+Reinicia si te lo pide, abre **Ubuntu** desde el menú Inicio y crea tu usuario.
+Dentro de esa Ubuntu ya estás en un Linux: **sigue esta guía como si fueras
+Linux**, empezando en la parte 1 (rama de Linux) y sin usar Docker Desktop.
+Clona el proyecto dentro de tu carpeta personal de Ubuntu (`~`), no en `/mnt/c`.
+Para el simulador, usa `./go2 dev shell` como en el apartado de Linux.
+
+**Cómo saber si funciona.** Dentro del contenedor (📦):
+
+```bash
+glxinfo -B
+```
+
+Si nombra tu tarjeta gráfica, funciona. Si dice `llvmpipe`, sigue dibujando por
+software y no has ganado nada.
+
+**Posibles obstáculos, sin comprobar.** Es posible que el contenedor no vea la
+GPU de WSLg, porque en WSL2 no se accede a ella por `/dev/dri` sino por otros
+dispositivos que el proyecto no comparte. Si es así, la solución no está aquí
+todavía. El robot físico sigue sin estar soportado en Windows.
 
 ## 3.2 Entrar en la caja (segunda terminal)
 
@@ -264,7 +337,7 @@ cd go2-research
 ./go2 dev shell
 ```
 
-**Windows y Mac** 🖥️ FUERA:
+**Windows y Mac** 🖥️ FUERA (en Windows, en PowerShell):
 
 ```bash
 cd go2-research
@@ -604,8 +677,8 @@ Recuerda: **📦 DENTRO** = en la caja, **🖥️ FUERA** = en tu ordenador.
 
 | qué | dónde | comando |
 |---|---|---|
-| comprobar que todo está bien | 🖥️ | `python3 tools/doctor.py` |
-| arreglar lo automatizable | 🖥️ | `python3 tools/doctor.py --fix` |
+| comprobar que todo está bien (Linux) | 🖥️ | `python3 tools/doctor.py` |
+| arreglar lo automatizable (Linux) | 🖥️ | `python3 tools/doctor.py --fix` |
 | entrar en la caja (Linux, simulador) | 🖥️ | `./go2 dev shell` |
 | entrar en la caja (Windows/Mac) | 🖥️ | `docker compose --profile sim exec shell bash` |
 | arrancar simulador (Windows/Mac) | 🖥️ | `docker compose --profile sim up` |
@@ -644,6 +717,7 @@ Cerrar todo: `exit` en cada terminal de la caja, `Ctrl + C` donde corra algo.
 
 | lo que ves | qué pasa | qué hacer |
 |---|---|---|
+| `error during connect` o `Cannot connect to the Docker daemon` | Docker no está en marcha | Abre Docker Desktop y espera a que el icono deje de moverse (en Linux: `sudo systemctl enable --now docker`) |
 | **`ModuleNotFoundError: No module named 'numpy'`** (o `cv2`, `torch`, `unitree_sdk2py`...) | **Estás FUERA de la caja.** Las bibliotecas solo existen dentro | Entra en la caja (3.2 o 4.4) y repite el comando. El principio de la línea tiene que decir `go2@` o `root@` |
 | `docker: command not found` (o `./go2: command not found`) dentro de la caja | Estás **DENTRO** y ese comando es para FUERA | Escribe `exit` para salir de la caja y repítelo |
 | `python3: can't open file 'tools/...'` | No estás en la carpeta del proyecto | Fuera de la caja: `cd go2-research`. Dentro: `cd /workspace` |
@@ -665,22 +739,19 @@ Cerrar todo: `exit` en cada terminal de la caja, `Ctrl + C` donde corra algo.
 | en 5.2 los comandos no son cero con la persona quieta | Fallo de control | **PARA** (`q` o `Ctrl + C`), no sigas y avisa |
 | los ficheros creados por la caja no se pueden borrar | `UID_GID` mal en `.env` | Ejecuta la parte 2.1 de nuevo |
 
-Cuando dudes: `python3 tools/doctor.py` (FUERA). Si estás dentro de la caja,
-también funciona y comprueba lo que corresponde dentro.
+Cuando dudes: en Linux, `python3 tools/doctor.py` (FUERA). En Windows y Mac, entra
+en la caja (3.2) y ejecútalo ahí: comprueba lo que corresponde dentro.
 
 ---
 
 # A dónde seguir
 
-- [`GUIA_USUARIO.md`](GUIA_USUARIO.md): cómo está montado por dentro, puertos,
-  variables, herramientas y límites conocidos.
-- [`GUIA_COMPLETA.md`](GUIA_COMPLETA.md): si vas a desarrollar tu propio caso
-  de uso.
 - **Tu propio caso de uso:** copia [`usecases/uc00_plantilla`](../usecases/uc00_plantilla/LEEME.md)
   y abre `mi_caso.py`. Es lo único que tocas; funciona sin cambiar nada.
-- [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md): cómo desarrollar un
-  caso de uso nuevo y qué transfiere del simulador al robot real.
+- [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md): para entender cómo se
+  desarrolla un caso de uso y qué transfiere del simulador al robot real.
+- [`API.md`](API.md): referencia técnica, la línea exacta de cada operación.
 - [`SAFETY.md`](SAFETY.md): protocolo de seguridad completo del grupo. Léelo
   antes de hacer nada que vaya más allá de esta guía con el robot real.
-- [`DOCKER.md`](DOCKER.md) y [`RENDIMIENTO.md`](RENDIMIENTO.md): detalles del
-  entorno y del rendimiento.
+- [`DOCKER.md`](DOCKER.md): el contenedor por dentro: puertos, variables,
+  rendimiento del visor y versiones fijadas.

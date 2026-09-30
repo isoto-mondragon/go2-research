@@ -1,5 +1,7 @@
 # Guía de uso día-a-día — Go2 sim + percepción
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md` (comandos del día a día) y `docs/API.md`. Ver `docs/legacy/README.md`.
+
 Esta guía es la "cheat sheet" para encender el portátil y trabajar. No
 explica la instalación (para eso `STUDENT_GUIDE.md`), explica los **comandos
 exactos** que necesitas cada día.

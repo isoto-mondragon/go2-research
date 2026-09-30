@@ -1,5 +1,7 @@
 # Guía de prácticas — Unitree Go2 + RL (mjlab)
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md` (empezar) y `docs/API.md` (referencia). Ver `docs/legacy/README.md`.
+
 Esta guía te lleva desde un Windows recién instalado hasta hacer correr una
 policy RL sobre el Unitree Go2, primero en **simulador** y luego en el
 **robot real**. La práctica está pensada para que te centres en la capa de

@@ -357,6 +357,11 @@ def main() -> int:
 
     limitador = Limitador(ctl, c["commands"], real)
 
+    # Los parametros propios de configs/params.yaml (seccion mi_caso) llegan a
+    # mi_caso.py como el diccionario PARAMS. Asi quien escribe su caso no
+    # tiene que abrir ni interpretar el yaml.
+    mi_caso.PARAMS = cfg.get("mi_caso") or {}
+
     # Gancho opcional: si mi_caso.py define preparar(), se llama una vez antes
     # del bucle. Sirve para abrir la camara o cargar un modelo, que es lento y
     # no debe hacerse en cada paso. Solo lo usa el ejemplo 4.
@@ -375,6 +380,7 @@ def main() -> int:
     signal.signal(signal.SIGTERM, lambda *_: parar.__setitem__("flag", True))
 
     filas: list = []
+    avisado_none = False
     motivo = "fin de --duration"
     dt_obj = 1.0 / float(ctl["hz"])
     t0 = t_prev = time.monotonic()
@@ -404,6 +410,14 @@ def main() -> int:
 
             # --- decidir, limitar, enviar ---
             deseada = mi_caso.decidir(tel or TelemetriaNula(), t)
+            if deseada is None:
+                # Lo mas habitual: una cadena if/elif sin `return` final. Parar
+                # y avisar es mejor que romper con un error de desempaquetado.
+                if not avisado_none:
+                    print("  AVISO: decidir() no ha devuelto nada; se manda "
+                          "velocidad cero. Le falta un return al final.")
+                    avisado_none = True
+                deseada = (0.0, 0.0, 0.0)
             vx, vy, wz = limitador.paso(deseada, dt)
             if salida is not None:
                 salida.enviar(vx, vy, wz)

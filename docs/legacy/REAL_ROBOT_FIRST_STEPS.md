@@ -1,3 +1,5 @@
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md`, partes 4 y 5, y `docs/SAFETY.md`. Ver `docs/legacy/README.md`.
+
 ---
 title: "Primeros pasos con el Go2 físico"
 subtitle: "Guía progresiva: desde el ping hasta los primeros movimientos"

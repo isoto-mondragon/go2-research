@@ -3,6 +3,9 @@
 > **Si solo quieres hacer un caso de uso, no leas esto:** copia
 > [`usecases/uc00_plantilla`](../usecases/uc00_plantilla/LEEME.md) y abre `mi_caso.py`.
 > Este documento es para entender cómo funciona por dentro.
+>
+> **Para quién:** quien desarrolla y quiere entender el porqué de las decisiones.
+> **Cuándo:** después de haber probado la plantilla.
 
 
 ## Lo primero: no hace falta entrenar nada

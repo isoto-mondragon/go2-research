@@ -1,5 +1,7 @@
 # Empezar de cero
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md`. Ver `docs/legacy/README.md`.
+
 Esta guía te lleva desde un ordenador vacío hasta mover un robot cuadrúpedo en
 un simulador, en tu pantalla.
 

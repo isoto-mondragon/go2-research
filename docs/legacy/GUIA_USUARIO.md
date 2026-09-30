@@ -1,5 +1,7 @@
 # Entorno Go2 — Guía de usuario
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md` (empezar) y `docs/DOCKER.md` (puertos, variables, contenedor). Ver `docs/legacy/README.md`.
+
 **Grupo DANZ · Escuela Politécnica Superior · Mondragon Unibertsitatea**
 
 Todo lo que necesitas para trabajar con el robot cuadrúpedo Unitree Go2, en
@@ -11,7 +13,7 @@ falta NVIDIA.
 
 ---
 
-> **¿Es tu primera vez?** Empieza por [`GUIA.md`](GUIA.md): son 30
+> **¿Es tu primera vez?** Empieza por [`GUIA.md`](../GUIA.md): son 30
 > minutos, copiando y pegando, sin tecnicismos. Vuelve aquí cuando quieras
 > entender cómo está montado todo.
 
@@ -124,7 +126,7 @@ dog.set_velocity(vx=0.3, vy=0.0, wz=0.0)   # adelante a 0.3 m/s
 dog.stop()
 ```
 
-Ese ejemplo es para el **simulador**. En el robot real, comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. Ver [`API.md`](API.md).
+Ese ejemplo es para el **simulador**. En el robot real, comprobado con el robot: usar `Go2Controller` en uc04 no movía el robot, y llamar a `SportClient` directamente sí. La causa probable es que falta `BalanceStand()` en la secuencia de arranque: `SportClient` necesita `StandUp()` → `BalanceStand()` antes de que `Move()` tenga efecto. **Pendiente** de verificar con el robot si `Go2Controller` funciona añadiendo `BalanceStand()`. Ver [`API.md`](../API.md).
 
 **Bajo nivel — LowCmd.** Control articular directo: posición objetivo, ganancias
 y par de cada uno de los 12 motores, a 200-500 Hz. Necesario para desplegar
@@ -413,7 +415,7 @@ python3 usecases/uc04_person_following/deploy/follow_person.py --mode sim --show
 
 La webcam solo llega al contenedor en Linux y usando `./go2`.
 
-Para crear el tuyo: [`ESTRATEGIA_CASOS_USO.md`](ESTRATEGIA_CASOS_USO.md).
+Para crear el tuyo: [`ESTRATEGIA_CASOS_USO.md`](../ESTRATEGIA_CASOS_USO.md).
 
 ---
 

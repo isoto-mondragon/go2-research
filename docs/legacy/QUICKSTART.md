@@ -1,5 +1,7 @@
 # Guía rápida
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md`. Ver `docs/legacy/README.md`.
+
 Del ordenador en blanco a mover el robot en el simulador. Unos 45 minutos, casi
 todo esperando a que se construya la imagen.
 
@@ -235,5 +237,5 @@ lentitud del visor no afecta a la simulación.
 
 - Desarrollar casos de uso, conectar el robot real, arquitectura interna:
   [`GUIA_COMPLETA.md`](GUIA_COMPLETA.md)
-- Detalles del contenedor y limitaciones conocidas: [`DOCKER.md`](DOCKER.md)
-- Antes de tocar el robot físico, **obligatorio**: [`SAFETY.md`](SAFETY.md)
+- Detalles del contenedor y limitaciones conocidas: [`DOCKER.md`](../DOCKER.md)
+- Antes de tocar el robot físico, **obligatorio**: [`SAFETY.md`](../SAFETY.md)

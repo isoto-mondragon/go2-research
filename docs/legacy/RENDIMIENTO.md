@@ -1,5 +1,7 @@
 # Rendimiento del visor: qué esperar según tu sistema
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/DOCKER.md`, sección «Rendimiento del visor», donde está fusionado sin duplicar. Ver `docs/legacy/README.md`.
+
 Resumen: **el visor va fluido en Linux y pesado en Windows y macOS.** No hay
 nada que configurar; la diferencia la marca el sistema operativo.
 

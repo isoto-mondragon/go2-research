@@ -107,7 +107,7 @@ run "cat usecases/uc01_locomotion/configs/robot_go2.yaml"
 sub "Presencia de artefactos clave"
 for f in src/go2core/control/go2_controller.py \
          usecases/uc01_locomotion/notebooks \
-         docs/USAGE_GUIDE.md docs/STUDENT_GUIDE.md \
+         docs/legacy/USAGE_GUIDE.md docs/legacy/STUDENT_GUIDE.md \
          experiments; do
     printf '  %-55s %s\n' "$f" "$([ -e "$f" ] && echo PRESENTE || echo FALTA)"
 done

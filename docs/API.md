@@ -1,12 +1,16 @@
 # Chuleta de la API
 
+> **Para quién:** quien ya está desarrollando y necesita la firma exacta.
+> **Cuándo:** cuando la plantilla se te queda corta.
+
 Para cada cosa que puedes hacer, la línea exacta. Sin teoría.
 
 > **Si solo quieres hacer un caso de uso, no leas esto:** copia
 > [`usecases/uc00_plantilla`](../usecases/uc00_plantilla/LEEME.md) y abre `mi_caso.py`.
 > Este documento es para entender cómo funciona por dentro.
 
-Todo se ejecuta **dentro de la caja** (`./go2 dev shell`). Al principio de tu
+Todo se ejecuta **dentro de la caja** (Linux: `./go2 dev shell`; Windows y Mac:
+`docker compose --profile sim exec shell bash`). Al principio de tu
 script:
 
 ```python

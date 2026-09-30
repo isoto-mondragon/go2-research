@@ -7,6 +7,11 @@ que falta y con que comando se arregla.
 Funciona TANTO en el anfitrion como dentro del contenedor: detecta donde esta
 y comprueba lo que corresponde.
 
+Funciona en Linux, macOS y Windows, y usa SOLO la biblioteca estandar: en un
+anfitrion con Windows no hay numpy, ni pyyaml, ni nada mas instalado. Lo que
+solo tiene sentido en Linux (grupos, red del robot, GPU, override) se salta en
+los otros sistemas.
+
 Uso:
     python3 tools/doctor.py             # comprobar todo
     python3 tools/doctor.py --fix       # ademas, arreglar lo automatizable
@@ -15,15 +20,27 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import grp
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
+LINUX = platform.system() == "Linux"
+
+# Los colores ANSI no se activan solos en la consola de Windows, y una consola
+# con codificacion antigua revienta al imprimir un caracter que no conoce.
+if platform.system() == "Windows":
+    os.system("")
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(errors="replace")
+    except AttributeError:
+        pass
+
 V, R, G, Y, Z, B = ("\033[34m", "\033[31m", "\033[32m", "\033[33m",
                     "\033[0m", "\033[1m")
 
@@ -49,9 +66,10 @@ def sec(txt: str) -> None:
     print(f"\n{V}{B}{txt}{Z}")
 
 
-def corre(cmd: list[str], t: float = 10) -> tuple[int, str]:
+def corre(cmd: list[str], t: float = 10, cwd: Path | None = None) -> tuple[int, str]:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=t)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=t,
+                           cwd=cwd)
         return r.returncode, (r.stdout + r.stderr).strip()
     except Exception as e:
         return 1, str(e)
@@ -66,14 +84,16 @@ def comprobar_anfitrion(args) -> None:
     sec("1. Sistema")
     so = platform.system()
     print(f"  sistema: {so} {platform.machine()}")
-    if so != "Linux":
+    if not LINUX:
         avisa("No es Linux: el simulador funciona, el ROBOT FISICO no",
               "es una limitacion de Docker Desktop, no del proyecto")
 
     sec("2. Docker")
     if not shutil.which("docker"):
         mal("Docker no esta instalado",
-            "sudo apt install -y docker.io docker-compose-v2 docker-buildx")
+            "sudo apt install -y docker.io docker-compose-v2 docker-buildx"
+            if LINUX else
+            "instala Docker Desktop: https://www.docker.com/products/docker-desktop/")
         return
     ok("docker instalado")
 
@@ -84,31 +104,36 @@ def comprobar_anfitrion(args) -> None:
                 "sudo usermod -aG docker $USER  y REINICIAR el ordenador")
         else:
             mal("El servicio de Docker no responde",
-                "sudo systemctl enable --now docker")
+                "sudo systemctl enable --now docker" if LINUX else
+                "abre Docker Desktop y espera a que el icono deje de moverse")
         return
     ok("docker funciona", f"servidor {out}")
 
     c, _ = corre(["docker", "compose", "version"])
     if c != 0:
         mal("docker compose no disponible",
-            "sudo apt install -y docker-compose-v2")
+            "sudo apt install -y docker-compose-v2" if LINUX else
+            "actualiza Docker Desktop")
     else:
         ok("docker compose disponible")
 
-    sec("3. Fichero .env")
-    env = RAIZ / ".env"
+    # En Windows y macOS no hace falta .env: UID_GID y GO2_IFACE solo se usan
+    # con el usuario de Linux y con el robot fisico. Pedirlo alli daria un
+    # falso problema.
     valores: dict[str, str] = {}
-    if not env.exists():
-        mal("No existe .env",
-            'echo "UID_GID=$(id -u):$(id -g)" > .env')
-    else:
-        for l in env.read_text().splitlines():
-            if "=" in l and not l.startswith("#"):
-                k, v = l.split("=", 1)
-                valores[k.strip()] = v.strip()
-        ok(".env existe", f"{len(valores)} variables")
+    if LINUX:
+        sec("3. Fichero .env")
+        env = RAIZ / ".env"
+        if not env.exists():
+            mal("No existe .env",
+                'echo "UID_GID=$(id -u):$(id -g)" > .env')
+        else:
+            for l in env.read_text().splitlines():
+                if "=" in l and not l.startswith("#"):
+                    k, v = l.split("=", 1)
+                    valores[k.strip()] = v.strip()
+            ok(".env existe", f"{len(valores)} variables")
 
-    if platform.system() == "Linux":
         esperado = f"{os.getuid()}:{os.getgid()}"
         if valores.get("UID_GID") != esperado:
             mal(f"UID_GID incorrecto (deberia ser {esperado})",
@@ -119,7 +144,7 @@ def comprobar_anfitrion(args) -> None:
             ok("UID_GID correcto", esperado)
 
     sec("4. Red del robot")
-    if platform.system() != "Linux":
+    if not LINUX:
         avisa("Sin robot fisico en este sistema")
     else:
         c, out = corre(["ip", "-br", "link"])
@@ -170,15 +195,19 @@ def comprobar_anfitrion(args) -> None:
 
     sec("5. GPU y webcam")
     dri = Path("/dev/dri")
-    gpu = dri.exists() and any(dri.glob("renderD*"))
-    videos = sorted(Path("/dev").glob("video*"))
-    print(f"  GPU accesible : {'si' if gpu else 'no'}")
-    print(f"  webcam        : {', '.join(v.name for v in videos) or 'ninguna'}")
-    print(f"  {Y}la camara del ROBOT llega por red: no necesita /dev/video{Z}")
+    gpu = LINUX and dri.exists() and any(dri.glob("renderD*"))
+    videos = sorted(Path("/dev").glob("video*")) if LINUX else []
+    if LINUX:
+        print(f"  GPU accesible : {'si' if gpu else 'no'}")
+        print(f"  webcam        : {', '.join(v.name for v in videos) or 'ninguna'}")
+        print(f"  {Y}la camara del ROBOT llega por red: no necesita /dev/video{Z}")
+    else:
+        avisa("No aplica: Docker Desktop no da GPU ni webcam al contenedor",
+              "el visor ira por software; es una limitacion del sistema")
 
     sec("6. Override de Linux")
     ov = RAIZ / "docker-compose.linux.yml"
-    if platform.system() != "Linux":
+    if not LINUX:
         avisa("No aplica en este sistema")
     elif not ov.exists():
         if gpu or videos:
@@ -188,7 +217,6 @@ def comprobar_anfitrion(args) -> None:
             ok("no hace falta (sin GPU ni webcam)")
     else:
         txt = ov.read_text()
-        import re
         gids = [int(g) for g in re.findall(r'^\s+- "(\d+)"', txt, re.M)]
         malos = [g for g in gids if not _existe_gid(g)]
         disp = re.findall(r"- (/dev/[a-z0-9/]+):", txt)
@@ -215,12 +243,14 @@ def comprobar_anfitrion(args) -> None:
             "docker compose --profile sim pull")
 
     sec("8. Configuracion de compose")
-    for perfil in ("sim", "real"):
+    # Fuera de Linux solo existe el perfil sim; validar real y dev alli daria
+    # falsos problemas (usan la red del anfitrion y rutas de X11).
+    for perfil in (("sim", "real") if LINUX else ("sim",)):
         cmd = ["docker", "compose", "-f", "docker-compose.yml"]
-        if ov.exists() and platform.system() == "Linux":
+        if ov.exists() and LINUX:
             cmd += ["-f", "docker-compose.linux.yml"]
         cmd += ["--profile", perfil, "config", "--quiet"]
-        c, out = corre(cmd, 20)
+        c, out = corre(cmd, 20, cwd=RAIZ)
         if c == 0:
             ok(f"perfil '{perfil}' valido")
         else:
@@ -230,13 +260,17 @@ def comprobar_anfitrion(args) -> None:
 
 
 def _existe_gid(g: int) -> bool:
+    """El GID existe como grupo, o es el de algun dispositivo de GPU o video."""
+    try:
+        import grp   # solo existe en Unix
+    except ImportError:
+        return True
     try:
         grp.getgrgid(g)
         return True
     except KeyError:
-        return Path(f"/dev/dri").exists() and any(
-            d.stat().st_gid == g for d in Path("/dev").glob("video*")
-        ) if Path("/dev").exists() else False
+        disp = list(Path("/dev").glob("video*")) + list(Path("/dev/dri").glob("*"))
+        return any(d.stat().st_gid == g for d in disp)
 
 
 # ===========================================================================
@@ -340,6 +374,8 @@ def main() -> int:
             print("    python3 tools/dds_smoketest.py --mode "
                   f"{os.environ.get('GO2_MODE', 'sim')} "
                   f"--iface {os.environ.get('GO2_IFACE', 'lo')}")
+        elif LINUX:
+            print("    ./go2 dev shell")
         else:
             print("    docker compose --profile sim up")
         return 0

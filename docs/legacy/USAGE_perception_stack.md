@@ -1,5 +1,7 @@
 # Uso día a día
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `usecases/uc00_plantilla/LEEME.md` (cámara y detección) y `docs/API.md`, sección 5. Ver `docs/legacy/README.md`.
+
 Cheat sheet de comandos. Asume que ya hiciste la instalación de
 [INSTALL.md](INSTALL.md).
 
@@ -95,7 +97,7 @@ dog.stop()
 
 ### C) Demos de percepción YOLO
 
-Cada uno con un propósito distinto, ver tabla en [README](../README.md).
+Cada uno con un propósito distinto, ver tabla en [README](../../README.md).
 
 ```bash
 # Sigue a CUALQUIER persona
@@ -128,7 +130,7 @@ python examples/guard_mode.py
 | `Go2Policy` | Introspeccionar el modelo entrenado | Debug avanzado, ver obs_dim, joint_names, etc. |
 | `YoloCaptureThread` | Hilo robusto de webcam + YOLO | Para nuevos demos de percepción |
 
-Ejemplo de cada uno en [README](../README.md) y en los scripts de `examples/`.
+Ejemplo de cada uno en [README](../../README.md) y en los scripts de `examples/`.
 
 ---
 

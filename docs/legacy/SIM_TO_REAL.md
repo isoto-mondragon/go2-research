@@ -1,5 +1,7 @@
 # De simulador a robot real
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/ESTRATEGIA_CASOS_USO.md` (qué transfiere del simulador al robot) y `docs/API.md`. Ver `docs/legacy/README.md`.
+
 Cómo desplegar tu aplicación (la que probaste en simulador) en el Go2 físico.
 
 ---

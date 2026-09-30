@@ -10,9 +10,9 @@ Del ordenador en blanco al simulador (Linux, Windows y macOS) y, en Linux,
 al robot físico siguiéndote con su cámara.
 
 ```bash
-git clone git@github.com:isoto-mondragon/go2-research.git
+git clone https://github.com/isoto-mondragon/go2-research.git
 cd go2-research
-docker compose --profile sim build     # una vez, 20-40 min
+docker compose --profile sim pull      # una vez, 1-10 min
 ```
 
 Arrancar el simulador:
@@ -23,8 +23,9 @@ Arrancar el simulador:
   # y dentro del contenedor:
   cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
   ```
-- **Windows y Mac**: navegador. Va lento y no tiene arreglo: Docker Desktop no
-  puede usar la tarjeta gráfica y el 3D se dibuja por software.
+- **Windows y Mac**: navegador. Va lento y con Docker Desktop no tiene arreglo:
+  no puede usar la tarjeta gráfica y el 3D se dibuja por software. (En Windows
+  hay una vía con WSL2, **sin verificar**: ver la parte 3 de la guía.)
   ```bash
   docker compose --profile sim up        # navegador: localhost:6080/vnc.html
   ```

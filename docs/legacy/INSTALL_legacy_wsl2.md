@@ -1,5 +1,7 @@
 # Instalación desde cero
 
+> **ARCHIVADO.** No lo sigas: puede contradecir a `docs/GUIA.md`. Lo sustituye `docs/GUIA.md`, partes 1 y 3. La instalación manual en WSL2 ya no se usa: el entorno es la imagen Docker. Ver `docs/legacy/README.md`.
+
 Esta guía lleva desde un PC con Windows recién instalado hasta tener
 todo funcionando.
 

@@ -1,5 +1,8 @@
 # Protocolo de seguridad - Unitree Go2
 
+> **Para quién:** cualquiera que vaya a mover el robot físico.
+> **Cuándo:** antes de la primera vez, y cada vez que dudes. Es obligatorio.
+
 Obligatorio para cualquier persona del grupo que opere el robot, incluidos
 estudiantes de TFG/TFM. No es burocracia: en un grupo de investigacion este
 documento vale tanto como el codigo.
