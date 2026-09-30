@@ -1,0 +1,45 @@
+# uc00 - limites y seguridad. Normalmente no hace falta tocarlo: son topes
+# conservadores para las primeras pruebas. deploy/main.py lo carga con --config.
+
+control:
+  # Frecuencia del bucle. 20 Hz sobra para dar ordenes de velocidad; subirla
+  # solo satura el DDS sin que Sport Mode responda mejor.
+  hz: 20
+
+  # Topes PROPIOS, mas conservadores que los del contrato (vx -0.5..1.0,
+  # vy +-0.5, wz +-1.0). Un caso de uso casi nunca necesita la velocidad
+  # maxima del robot y limitarla hace las primeras pruebas mucho mas seguras.
+  # main.py aplica el mas estricto de los dos.
+  vx_max: 0.4        # m/s, adelante y atras
+  vy_max: 0.3        # m/s, lateral
+  wz_max: 0.6        # rad/s, giro
+
+  # Rampa de aceleracion (unidad por segundo). Sin ella un salto en tu logica,
+  # por ejemplo una deteccion que cambia de golpe, produce un tiron brusco.
+  aceleracion_max: 0.6
+
+  # Umbrales minimos utiles, SOLO en el robot real: Sport Mode ignora las
+  # ordenes por debajo de unos 0.2 m/s y el robot se queda quieto o va a
+  # tirones. No es un fallo. Una orden distinta de cero pero mas corta se sube
+  # a este minimo. En simulacion no se aplica: la politica RL si responde a
+  # ordenes pequenas y forzar el minimo falsearia la comparacion.
+  vel_min_util: 0.20   # m/s (vx y vy)
+  wz_min_util: 0.25    # rad/s
+
+seguridad:
+  # Por debajo de este porcentaje de bateria el robot real no arranca.
+  # En simulacion no hay bms_state (sale 0), asi que ahi no se comprueba.
+  bateria_min_pct: 25
+
+  # Segundos sin recibir rt/lowstate antes de parar. Si la telemetria se
+  # congela no sabes en que estado esta el robot, y seguir mandando ordenes
+  # a ciegas es peor que parar.
+  telemetria_max_edad_s: 0.5
+
+# Parametros propios de tu caso de uso. Se leen en mi_caso.py con
+# robot.param("velocidad", 0.3), donde el segundo valor es el que se usa si
+# el parametro no esta aqui. Se guardan enteros en el manifest.json de cada
+# ejecucion, asi que queda registrado con que valores se obtuvo cada resultado.
+mi_caso:
+  velocidad: 0.3      # m/s
+  segundos: 2.0
