@@ -29,7 +29,7 @@ def leer(robot, pregunta):
 
 def caso(robot):
     try:
-        traductor = Traductor(robot.modo, modelo=robot.param("modelo", "gemini-2.5-flash"))
+        traductor = Traductor(robot.modo, modelo=robot.param("modelo", "gemini-flash-lite-latest"))
     except ErrorLLM as e:
         print(f"\n{e}")
         return

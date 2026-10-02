@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -130,7 +131,7 @@ ESQUEMA = {
 class Traductor:
     """Una conversacion con el modelo. Recuerda las ultimas ordenes."""
 
-    def __init__(self, modo: str, modelo: str = "gemini-2.5-flash",
+    def __init__(self, modo: str, modelo: str = "gemini-flash-lite-latest",
                  timeout: float = 30.0, memoria: int = 6) -> None:
         self.modelo = modelo
         self.timeout = timeout
@@ -156,14 +157,21 @@ class Traductor:
             data=json.dumps(cuerpo).encode(),
             headers={"Content-Type": "application/json",
                      "x-goog-api-key": self._clave})
-        try:
-            with urllib.request.urlopen(peticion, timeout=self.timeout) as r:
-                datos = json.load(r)
-        except urllib.error.HTTPError as e:
-            raise ErrorLLM(self._explicar_http(e)) from None
-        except (urllib.error.URLError, TimeoutError) as e:
-            raise ErrorLLM(f"No hay conexion con Gemini ({e}). Comprueba que el "
-                           "ordenador tiene internet.") from None
+        # 500/503/504 son picos de demanda de Google: se reintenta con espera.
+        for intento in range(4):
+            try:
+                with urllib.request.urlopen(peticion, timeout=self.timeout) as r:
+                    datos = json.load(r)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code in (500, 503, 504) and intento < 3:
+                    print(f"  Gemini saturado ({e.code}), reintento...")
+                    time.sleep(2 * (intento + 1))
+                    continue
+                raise ErrorLLM(self._explicar_http(e)) from None
+            except (urllib.error.URLError, TimeoutError) as e:
+                raise ErrorLLM(f"No hay conexion con Gemini ({e}). Comprueba que el "
+                               "ordenador tiene internet.") from None
 
         try:
             texto = datos["candidates"][0]["content"]["parts"][0]["text"]

@@ -86,7 +86,7 @@ que llegar por otra interfaz (Wi-Fi del portátil). Si el robot funciona pero sa
 
 | parámetro | qué hace |
 |---|---|
-| `modelo` | modelo de Gemini (`gemini-2.5-flash` por defecto) |
+| `modelo` | modelo de Gemini (`gemini-flash-lite-latest` por defecto: rápido y suficiente para 8 acciones) |
 | `velocidad`, `velocidad_giro` | con qué velocidad se ejecuta el plan |
 | `max_metros`, `max_grados`, `max_espera` | tope por acción; lo que pase se recorta |
 | `max_pasos`, `max_segundos_plan` | un plan mayor se rechaza entero |
@@ -109,5 +109,6 @@ que llegar por otra interfaz (Wi-Fi del portátil). Si el robot funciona pero sa
 | `Falta GEMINI_API_KEY` | no está en `.env`, o `.env` no está en la raíz del repo |
 | `Gemini rechaza la clave` | clave mal copiada, con comillas o espacios |
 | `El modelo no existe` | cambia `modelo` en `params.yaml` |
-| `Demasiadas peticiones` | límite del plan gratuito; espera un minuto |
+| `Gemini saturado (503)` | pico de demanda de Google; reintenta solo hasta 3 veces. Si sigue, prueba otro `modelo` en `params.yaml` |
+| `Demasiadas peticiones` | límite del plan gratuito (pocas peticiones por minuto); espera un minuto |
 | `No hay conexion con Gemini` | sin internet (ver arriba, con el robot real) |

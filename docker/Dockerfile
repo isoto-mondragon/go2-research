@@ -169,10 +169,16 @@ RUN pip3 install --no-cache-dir --upgrade pip wheel \
         torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip3 install --no-cache-dir \
         "numpy>=1.26,<3" "scipy>=1.11" "matplotlib>=3.8" "pandas>=2.1" \
-        "pyyaml>=6.0" mujoco onnxruntime ultralytics \
+        "pyyaml>=6.0" "mujoco==3.7.0" onnxruntime ultralytics \
         opencv-python dvc \
         pygame
 
+# mujoco va FIJADA a 3.7.0, la de los experimentos de septiembre (ver
+# results/tables/sweep_progress.md). Sin fijar, cada reconstruccion trae la ultima
+# (3.14.0 al escribir esto) y el simulador cambia sin que nadie lo decida. En una
+# prueba con simulador nuevo en cada ejecucion, la politica de uc01 se quedaba
+# quieta 3 de 5 veces con 3.7 y 1 de 5 con 3.14 (pocas muestras: no concluyente).
+#
 # pygame lo importa unitree_sdk2py_bridge.py en la cabecera del fichero, aunque
 # solo lo use cuando USE_JOYSTICK=1. Sin el, el simulador no arranca ni con el
 # joystick desactivado.
