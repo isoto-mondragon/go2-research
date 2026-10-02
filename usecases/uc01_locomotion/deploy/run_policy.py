@@ -305,6 +305,9 @@ def main() -> int:
     p.add_argument("--stand-only", action="store_true")
     p.add_argument("--stand-mode", choices=["direct", "fsm", "none"], default="direct")
     p.add_argument("--ramp-s", type=float, default=1.5)
+    p.add_argument("--idle-hold", choices=["auto", "on", "off"], default="auto",
+                   help="sin comando de velocidad, mantener la pose de pie con PD en vez "
+                        "de ejecutar la politica. auto: activado en sim, no en real.")
     p.add_argument("--kp-scale", type=float, default=1.0)
     p.add_argument("--min-height", type=float, default=0.20)
     p.add_argument("--max-spread", type=float, default=0.25)
@@ -512,6 +515,18 @@ def main() -> int:
         last_action = np.zeros(12, dtype=np.float32)
         last_cmd = np.zeros(3, dtype=np.float32)
         phase = 0.0
+        # POSE DE REPOSO (--idle-hold). Medido en simulacion: con comando cero la
+        # politica se queda quieta (par ~7 Nm, altura 0.263 m) o se pone a
+        # "pisar" en el sitio (par 14-17 Nm, altura ~0.29 m), y cual de las dos
+        # sale es casi aleatorio (1-3 de cada 5 ejecuciones quietas, con mujoco
+        # 3.7 y 3.14). Mantener la pose con PD queda quieto el 9 de 9. Un
+        # integrador lento lleva las articulaciones a la pose offset de la
+        # politica (de donde sale su regimen quieto) sin numeros medidos a mano.
+        idle_hold = args.idle_hold == "on" or (args.idle_hold == "auto" and args.mode == "sim")
+        idle_thresh = float(c["obs"]["gait_phase"]["zero_below_cmd_norm"])
+        hold_target = None            # None: la politica esta al mando
+        last_target = offset_motor.copy()
+        held_s = 0.0
         t_start = time.monotonic()
         next_tick = t_start
         pub0 = ll.published
@@ -529,12 +544,30 @@ def main() -> int:
                 print(f"  [teleop] cmd={np.round(cmd, 2).tolist()}")
                 last_cmd = cmd
 
-            phase = (phase + step_dt / period) % 1.0
-            obs = build_obs(ll, c, cmd, phase, last_action)
-            act = sess.run([out_name], {in_name: obs})[0].reshape(-1)[:12]
-            last_action = act.astype(np.float32)
-
-            target_motor = ct.policy_to_motor(act * scale + offset_p, c)
+            # Se entra en reposo solo si el robot ya esta quieto: al parar tras
+            # andar, la politica lo detiene primero.
+            quieto = float(np.abs(ll.joint_dq()).max()) < 0.5
+            if idle_hold and float(np.linalg.norm(cmd)) < idle_thresh and \
+                    (hold_target is not None or quieto):
+                if hold_target is None:
+                    hold_target = last_target.copy()
+                hold_target = np.clip(
+                    hold_target + 0.5 * step_dt * (offset_motor - ll.joint_q()),
+                    offset_motor - 0.4, offset_motor + 0.4).astype(np.float32)
+                target_motor = hold_target
+                # Si llega un comando, la politica retoma desde una "ultima
+                # accion" coherente con lo que se estaba aplicando.
+                last_action = ((ct.motor_to_policy(hold_target, c) - offset_p)
+                               / scale).astype(np.float32)
+                held_s += step_dt
+            else:
+                hold_target = None
+                phase = (phase + step_dt / period) % 1.0
+                obs = build_obs(ll, c, cmd, phase, last_action)
+                act = sess.run([out_name], {in_name: obs})[0].reshape(-1)[:12]
+                last_action = act.astype(np.float32)
+                target_motor = ct.policy_to_motor(act * scale + offset_p, c)
+            last_target = target_motor
             applied = ll.set_command_clamped(target_motor, kp_pol, kd_pol, offset_motor)
 
             if writer is not None:
@@ -566,6 +599,8 @@ def main() -> int:
         dur = time.monotonic() - t_start
         pub_hz = (ll.published - pub0) / max(dur, 1e-6)
         print(f"\n[FIN] {'interrumpido' if stop['flag'] else 'duracion completada'} tras {dur:.1f} s")
+        if idle_hold:
+            print(f"      en reposo (pose)  : {held_s:.1f} s de {dur:.1f} s")
         print(f"      pasos            : {tick} | fuera de plazo {late} "
               f"({100.0 * late / max(tick, 1):.1f} %)")
         print(f"      trabajo por paso : {work_s / max(tick, 1) * 1e3:.2f} ms "
