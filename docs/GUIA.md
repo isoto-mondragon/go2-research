@@ -361,6 +361,17 @@ pie durante un minuto. Después el programa termina.
 Si sale `ModuleNotFoundError: No module named 'numpy'`: estás fuera de la caja.
 Repite el paso 3.2.
 
+**Si el robot patalea o se cae:** casi siempre es que el ordenador va justo y la
+política no cumple su plazo. Antes de ejecutar, en el anfitrión (fuera de la caja):
+
+- **Linux:** `powerprofilesctl set performance` (se deshace con `... set balanced`).
+- **Windows / Mac:** enchufa el portátil y elige el modo de energía de máximo
+  rendimiento.
+
+Cierra además lo que gaste CPU (navegador, videollamadas). Y **reinicia el
+simulador entre ejecuciones** (tecla Backspace en su ventana): si el robot quedó
+caído, el programa lo avisa y no se mueve.
+
 ## 3.4 Conducirlo con el teclado (tres terminales)
 
 Hacen falta **tres** terminales a la vez: una para el simulador, otra para el

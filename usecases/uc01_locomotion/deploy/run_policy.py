@@ -21,7 +21,7 @@ por la CPU en este portatil:
 
   1. El hilo publicador de LowCmd. El CRC de unitree_sdk2py esta en Python puro
      y recorre el mensaje byte a byte, asi que 500 Hz cuesta una fraccion
-     grande de un nucleo. En simulacion 200 Hz sobran: usa --publish-hz 200.
+     grande de un nucleo. En simulacion basta con 100 Hz (el defecto); 500 en real.
      Para el robot real, dejar 500.
   2. onnxruntime abre un hilo por nucleo por defecto. Para una MLP de 47
      entradas eso es contraproducente: sincronizar los hilos cuesta mas que el
@@ -45,7 +45,7 @@ Uso tipico:
     # Terminal A: simulador
     cd ~/opt/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
     # Terminal B: politica
-    python3 .../run_policy.py --mode sim --teleop --publish-hz 200 --duration 300
+    python3 .../run_policy.py --mode sim --teleop --duration 300
     # Terminal C: teclado
     python3 tools/teleop.py --mode sim
 """
@@ -226,6 +226,54 @@ def command_at(t: float, args, c: dict, teleop: TeleopSource | None) -> np.ndarr
     return clamp_cmd(v, c)
 
 
+def wait_upright(ll: LowLevel, max_tilt_deg: float = 25.0,
+                 wait_s: float = 3.0) -> tuple[bool, float]:
+    """Espera a que el robot no este volcado. Devuelve (ok, inclinacion final).
+
+    Tras una ejecucion anterior el robot cae y tarda un poco en quedarse quieto,
+    asi que se le da `wait_s` antes de decidir que esta volcado de verdad.
+    """
+    t0 = time.monotonic()
+    while True:
+        tilt = float(np.degrees(ll.tilt_rad()))
+        if tilt <= max_tilt_deg:
+            return True, tilt
+        if time.monotonic() - t0 > wait_s:
+            return False, tilt
+        time.sleep(0.05)
+
+
+def timing_preflight(ll: LowLevel, c: dict, sess, in_name: str, out_name: str,
+                     seconds: float = 1.5, slack_s: float = 0.005) -> tuple[float, float]:
+    """Ensaya el bucle de la politica (sin actuar) y mide si cumple el plazo.
+
+    Hace el mismo trabajo que el bucle real (observacion + inferencia) con el
+    hilo de LowCmd ya publicando. Devuelve (% de pasos tardios, peor retraso en
+    ms). Un paso es tardio si el trabajo excede el plazo o si despierta mas de
+    `slack_s` despues de lo previsto.
+    """
+    step_dt = float(c["policy"]["step_dt"])
+    cmd = np.zeros(3, dtype=np.float32)
+    last = np.zeros(12, dtype=np.float32)
+    n = int(seconds / step_dt)
+    late, worst = 0, 0.0
+    nxt = time.monotonic()
+    for _ in range(n):
+        obs = build_obs(ll, c, cmd, 0.0, last)
+        sess.run([out_name], {in_name: obs})
+        nxt += step_dt
+        wait = nxt - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        delay = time.monotonic() - nxt
+        worst = max(worst, delay)
+        if wait < 0 or delay > slack_s:
+            late += 1
+        if delay > step_dt:               # muy atrasado: reanclar el ritmo
+            nxt = time.monotonic()
+    return 100.0 * late / n, worst * 1e3
+
+
 def stand_verdict(res: dict, min_height: float, max_spread: float) -> tuple[bool, str]:
     if res["altura"] < min_height:
         return False, f"altura {res['altura']:.3f} m < {min_height} m: no se ha levantado"
@@ -262,7 +310,8 @@ def main() -> int:
     p.add_argument("--max-spread", type=float, default=0.25)
     p.add_argument("--force", action="store_true")
     p.add_argument("--publish-hz", type=float, default=None,
-                   help="frecuencia del hilo de LowCmd. 200 en sim, 500 en robot real.")
+                   help="frecuencia del hilo de LowCmd. Por defecto: 100 en sim, "
+                        "lo del contrato (500) en el robot real.")
     p.add_argument("--onnx-threads", type=int, default=1,
                    help="hilos de onnxruntime. 1 es lo optimo para una MLP pequena.")
     p.add_argument("--no-torque-trip", action="store_true")
@@ -321,8 +370,13 @@ def main() -> int:
             return 1
 
     ll = LowLevel(c, mode=args.mode, iface=args.iface, domain=args.domain)
-    if args.publish_hz:
-        ll.publish_dt = 1.0 / float(args.publish_hz)
+    # En simulacion 100 Hz sobran (la politica solo cambia el objetivo a 50 Hz).
+    # El CRC es Python puro y su hilo compite por el GIL con el bucle de la
+    # politica: medido, a 500 Hz el 41 % de los pasos despiertan >5 ms tarde,
+    # a 200 Hz el 13-18 % y a 100 Hz el 2-3 %. Con retrasos asi el robot patalea.
+    publish_hz = args.publish_hz or (100.0 if args.mode == "sim" else None)
+    if publish_hz:
+        ll.publish_dt = 1.0 / float(publish_hz)
     if args.no_torque_trip:
         ll.torque_trip = False
         print("\n  AVISO: disparo por par DESACTIVADO. Solo para depurar en simulacion.")
@@ -377,6 +431,29 @@ def main() -> int:
         ll.start()
         print(f"\n{ll.summary()}")
         print(f"publicacion de LowCmd a {1.0 / ll.publish_dt:.0f} Hz objetivo")
+
+        # --- comprobaciones ANTES de mover nada ---
+        ok, tilt0 = wait_upright(ll)
+        if not ok and not args.force:
+            print(f"\n[PRECHEQUEO] el robot esta volcado ({tilt0:.0f} deg de inclinacion).")
+            if args.mode == "sim":
+                print("             Reinicia el simulador (tecla Backspace en su ventana,")
+                print("             o cierralo y vuelvelo a abrir) y repite.")
+            else:
+                print("             Ponlo sobre sus patas, o tumbado boca abajo, y repite.")
+            print("             --force para continuar igualmente.")
+            return 5
+        if sess is not None:
+            late_pct, worst_ms = timing_preflight(ll, c, sess, in_name, out_name)
+            print(f"[PRECHEQUEO] ritmo de la politica: {late_pct:.0f} % de pasos tardios, "
+                  f"peor retraso {worst_ms:.0f} ms")
+            # Solo aviso: el umbral sale de pocas medidas (9 % con el perfil de
+            # energia en "performance" y el robot aguanta; 31 % o mas con
+            # "balanced" y patalea) y no esta validado para bloquear.
+            if late_pct > 20.0:
+                print("\n             AVISO: el ordenador va justo; si el robot patalea, pon el")
+                print("             perfil de energia en rendimiento y cierra programas pesados")
+                print("             (Linux: powerprofilesctl set performance). Ver docs/GUIA.md.\n")
 
         if args.teleop:
             teleop = TeleopSource()
